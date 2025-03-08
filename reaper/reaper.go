@@ -19,6 +19,7 @@ extern int goHookCommandProc2(void* section, int commandId, int val, int valhw, 
 */
 import "C"
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"unsafe"
@@ -489,4 +490,144 @@ func LogCurrentFX() error {
 	}
 
 	return nil
+}
+
+// FXParameter represents a single parameter of an FX
+type FXParameter struct {
+	Index          int     `json:"index"`
+	Name           string  `json:"name"`
+	Value          float64 `json:"value"`          // Normalized value (0.0-1.0)
+	FormattedValue string  `json:"formattedValue"` // Human-readable value
+	Min            float64 `json:"min"`            // Minimum value
+	Max            float64 `json:"max"`            // Maximum value
+}
+
+// FXInfo represents an FX and its parameters
+type FXInfo struct {
+	Index      int           `json:"index"`
+	Name       string        `json:"name"`
+	Parameters []FXParameter `json:"parameters"`
+}
+
+// GetTrackFXParamValueWithRange gets the normalized value and range of a parameter
+func GetTrackFXParamValueWithRange(track unsafe.Pointer, fxIndex int, paramIndex int) (value, min, max float64, err error) {
+	if !initialized {
+		return 0, 0, 0, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_GetParam")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return 0, 0, 0, fmt.Errorf("could not get TrackFX_GetParam function pointer")
+	}
+
+	// Allocate memory for min and max values
+	minPtr := (*C.double)(C.malloc(C.size_t(unsafe.Sizeof(C.double(0)))))
+	maxPtr := (*C.double)(C.malloc(C.size_t(unsafe.Sizeof(C.double(0)))))
+	defer C.free(unsafe.Pointer(minPtr))
+	defer C.free(unsafe.Pointer(maxPtr))
+
+	value = float64(C.plugin_bridge_call_track_fx_get_param(getFuncPtr, track, C.int(fxIndex), C.int(paramIndex), minPtr, maxPtr))
+	min = float64(*minPtr)
+	max = float64(*maxPtr)
+
+	return value, min, max, nil
+}
+
+// GetFXParameters retrieves all parameters for a specific FX
+func GetFXParameters(track unsafe.Pointer, fxIndex int) (FXInfo, error) {
+	result := FXInfo{
+		Index:      fxIndex,
+		Parameters: []FXParameter{},
+	}
+
+	// Get FX name
+	fxName, err := GetTrackFXName(track, fxIndex)
+	if err != nil {
+		return result, fmt.Errorf("failed to get FX name: %v", err)
+	}
+	result.Name = fxName
+
+	// Get parameter count
+	paramCount, err := GetTrackFXParamCount(track, fxIndex)
+	if err != nil {
+		return result, fmt.Errorf("failed to get parameter count: %v", err)
+	}
+
+	// Collect each parameter
+	for i := 0; i < paramCount; i++ {
+		paramName, err := GetTrackFXParamName(track, fxIndex, i)
+		if err != nil {
+			return result, fmt.Errorf("failed to get parameter name: %v", err)
+		}
+
+		paramValue, min, max, err := GetTrackFXParamValueWithRange(track, fxIndex, i)
+		if err != nil {
+			return result, fmt.Errorf("failed to get parameter value: %v", err)
+		}
+
+		paramFormatted, err := GetTrackFXParamFormatted(track, fxIndex, i)
+		if err != nil {
+			return result, fmt.Errorf("failed to get formatted parameter value: %v", err)
+		}
+
+		param := FXParameter{
+			Index:          i,
+			Name:           paramName,
+			Value:          paramValue,
+			FormattedValue: paramFormatted,
+			Min:            min,
+			Max:            max,
+		}
+
+		result.Parameters = append(result.Parameters, param)
+	}
+
+	return result, nil
+}
+
+// GetCurrentFXInfo gets information about the FX on the currently selected track
+func GetCurrentFXInfo() ([]FXInfo, error) {
+	// Get selected track
+	track, err := GetSelectedTrack()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get selected track: %v", err)
+	}
+
+	// Get FX count
+	fxCount, err := GetTrackFXCount(track)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get FX count: %v", err)
+	}
+
+	// Gather info for all FX
+	result := make([]FXInfo, 0, fxCount)
+	for i := 0; i < fxCount; i++ {
+		fxInfo, err := GetFXParameters(track, i)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get FX parameters: %v", err)
+		}
+		result = append(result, fxInfo)
+	}
+
+	return result, nil
+}
+
+// GetCurrentFXInfoJSON returns the FX information as a JSON string
+func GetCurrentFXInfoJSON() (string, error) {
+	fxInfos, err := GetCurrentFXInfo()
+	if err != nil {
+		return "", err
+	}
+
+	// Import encoding/json package for JSON serialization
+	// Make sure to add: import "encoding/json" at the top of reaper.go
+	jsonData, err := json.Marshal(fxInfos)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal FX info to JSON: %v", err)
+	}
+
+	return string(jsonData), nil
 }

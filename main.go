@@ -16,13 +16,25 @@ import (
 func handleFXPrototype() {
 	reaper.ConsoleLog("----- LLM FX Prototype Activated -----")
 
-	err := reaper.LogCurrentFX()
+	// Get FX info as structured data
+	fxInfosJSON, err := reaper.GetCurrentFXInfoJSON()
 	if err != nil {
-		reaper.ConsoleLog(fmt.Sprintf("Error: %v", err))
+		reaper.ConsoleLog(fmt.Sprintf("Error getting FX info: %v", err))
 		return
 	}
 
-	reaper.ConsoleLog("LLM FX Prototype step 1 complete! The FX parameters have been logged.")
+	// Log the JSON data
+	reaper.ConsoleLog("FX Parameters as JSON:")
+	reaper.ConsoleLog(fxInfosJSON)
+
+	// Also log the parameters in a readable format for reference
+	err = reaper.LogCurrentFX()
+	if err != nil {
+		reaper.ConsoleLog(fmt.Sprintf("Error logging FX details: %v", err))
+		return
+	}
+
+	reaper.ConsoleLog("LLM FX Prototype step 1 complete! The FX parameters have been collected.")
 	reaper.ConsoleLog("Future steps: Add user input dialog and LLM integration.")
 }
 
