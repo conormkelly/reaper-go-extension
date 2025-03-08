@@ -10,6 +10,7 @@ typedef struct PCM_source PCM_source;
 typedef struct project_config_extension_t project_config_extension_t;
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include "./sdk/reaper_plugin.h"
 
 // Helper functions for the Go code to call
@@ -28,6 +29,10 @@ void plugin_bridge_call_track_fx_get_param_name(void* func_ptr, void* track, int
 double plugin_bridge_call_track_fx_get_param(void* func_ptr, void* track, int fx_idx, int param_idx, double* minval, double* maxval);
 void plugin_bridge_call_track_fx_get_param_formatted(void* func_ptr, void* track, int fx_idx, int param_idx, char* buf, int buf_size);
 bool plugin_bridge_call_track_fx_set_param(void* func_ptr, void* track, int fx_idx, int param_idx, double val);
+
+// Track information functions
+double plugin_bridge_call_track_get_info_value(void* func_ptr, void* track, const char* param);
+bool plugin_bridge_call_get_track_name(void* func_ptr, void* track, char* buf, int buf_size, int* flags);
 
 void plugin_bridge_set_get_func(void* get_func_ptr);
 void* plugin_bridge_get_get_func();

@@ -170,6 +170,32 @@ bool plugin_bridge_call_track_fx_set_param(void* func_ptr, void* track, int fx_i
     return track_fx_set_param(track, fx_idx, param_idx, val);
 }
 
+// Get track information value
+double plugin_bridge_call_track_get_info_value(void* func_ptr, void* track, const char* param) {
+    if (!func_ptr || !track || !param) {
+        return 0.0;
+    }
+    
+    double (*get_track_info)(void*, const char*) = (double (*)(void*, const char*))func_ptr;
+    return get_track_info(track, param);
+}
+
+// Get track name
+bool plugin_bridge_call_get_track_name(void* func_ptr, void* track, char* buf, int buf_size, int* flags) {
+    if (!func_ptr || !track || !buf || buf_size <= 0) {
+        // If buffer is valid, make it an empty string for safety
+        if (buf && buf_size > 0) {
+            buf[0] = '\0';
+        }
+        return false;
+    }
+    
+    bool (*get_track_name)(void*, char*, int, int*) = 
+        (bool (*)(void*, char*, int, int*))func_ptr;
+    
+    return get_track_name(track, buf, buf_size, flags);
+}
+
 // Global storage for REAPER's GetFunc pointer
 // This is a central lookup mechanism for all REAPER API functions
 // It's accessed from multiple functions but is set only once during initialization

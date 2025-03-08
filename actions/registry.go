@@ -7,8 +7,13 @@ func RegisterAll() error {
 	reaper.ConsoleLog("----------------------------------------------------------")
 	reaper.ConsoleLog("Registering Go REAPER extension actions...")
 
-	// Register FX Prototype
+	// Register FX Prototype (original debug action)
 	if err := RegisterFXPrototype(); err != nil {
+		return err
+	}
+
+	// Register FX Dialog (LLM FX Assistant)
+	if err := RegisterFXDialog(); err != nil {
 		return err
 	}
 
