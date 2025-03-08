@@ -12,6 +12,20 @@ import (
 	"go-reaper/reaper"
 )
 
+// Add the action handler for LLM FX Prototype
+func handleFXPrototype() {
+	reaper.ConsoleLog("----- LLM FX Prototype Activated -----")
+
+	err := reaper.LogCurrentFX()
+	if err != nil {
+		reaper.ConsoleLog(fmt.Sprintf("Error: %v", err))
+		return
+	}
+
+	reaper.ConsoleLog("LLM FX Prototype step 1 complete! The FX parameters have been logged.")
+	reaper.ConsoleLog("Future steps: Add user input dialog and LLM integration.")
+}
+
 //export GoReaperPluginEntry
 func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
 	fmt.Println("Go REAPER plugin entry called")
@@ -33,9 +47,15 @@ func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
 	reaper.ConsoleLog("Hello from Go REAPER extension!")
 	reaper.ConsoleLog("----------------------------------------------------------")
 
-	// Register some distinctive actions in the Main section
-	reaper.RegisterMainAction("GO_PURPLE_DRAGON", "Go: Purple Dragon Attack")
-	reaper.RegisterMainAction("GO_RAINBOW_LASER", "Go: Rainbow Laser Beam")
+	// Register our new LLM FX Prototype action
+	FXPrototypeID, err := reaper.RegisterMainAction("GO_FX_PROTOTYPE", "Go: LLM FX Prototype")
+	if err != nil {
+		reaper.ConsoleLog(fmt.Sprintf("Failed to register LLM FX Prototype: %v", err))
+	} else {
+		reaper.ConsoleLog(fmt.Sprintf("LLM FX Prototype registered with ID: %d", FXPrototypeID))
+		// Register the handler for the action
+		reaper.SetActionHandler("GO_FX_PROTOTYPE", handleFXPrototype)
+	}
 
 	reaper.ConsoleLog("----------------------------------------------------------")
 	reaper.ConsoleLog("Go plugin loaded successfully! Check Actions > Show action list...")

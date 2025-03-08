@@ -62,6 +62,9 @@ func Initialize(info unsafe.Pointer) error {
 		return fmt.Errorf("could not get GetFunc function pointer")
 	}
 
+	// Store GetFunc for later use using our bridge function
+	C.plugin_bridge_set_get_func(unsafe.Pointer(getFuncPtr))
+
 	// Get the ShowConsoleMsg function
 	cFuncName := C.CString("ShowConsoleMsg")
 	defer C.free(unsafe.Pointer(cFuncName))
@@ -80,7 +83,10 @@ func Initialize(info unsafe.Pointer) error {
 	// Clear registered commands map
 	registeredCommands = make(map[string]int)
 
-	// Register command hooks - THIS IS THE KEY PART THAT WAS MISSING BEFORE
+	// Initialize action handlers map
+	initActionHandlers()
+
+	// Register command hooks
 	cHookCmd2 := C.CString("hookcommand2")
 	defer C.free(unsafe.Pointer(cHookCmd2))
 	C.plugin_bridge_call_register(registerFuncPtr, cHookCmd2, unsafe.Pointer(C.goHookCommandProc2))
@@ -112,15 +118,45 @@ func ConsoleLog(message string) error {
 	return nil
 }
 
+// Store a map of action handlers
+var actionHandlers map[string]func()
+
+// ActionHandler defines a function type for handling actions
+type ActionHandler func()
+
+// Initialize action handlers map
+func initActionHandlers() {
+	actionHandlers = make(map[string]func())
+}
+
+// SetActionHandler associates a function with an action ID
+func SetActionHandler(actionID string, handler func()) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	actionHandlers[actionID] = handler
+}
+
 // Command callback handlers
 //
 //export goHookCommandProc
 func goHookCommandProc(commandId C.int, flag C.int) C.int {
 	// Check if this is one of our registered commands
-	for _, cmdID := range registeredCommands {
+	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
-			// Command was triggered - log it to console
-			ConsoleLog(fmt.Sprintf("GoReaper action triggered! Command ID: %d", int(commandId)))
+			// Log that the command was triggered
+			ConsoleLog(fmt.Sprintf("GoReaper action triggered! Command ID: %d (%s)", int(commandId), actionID))
+
+			// Check if we have a handler for this action
+			mutex.RLock()
+			handler, exists := actionHandlers[actionID]
+			mutex.RUnlock()
+
+			if exists {
+				// Execute the handler
+				go handler()
+			}
+
 			return 1 // Return 1 to indicate we handled it
 		}
 	}
@@ -130,10 +166,21 @@ func goHookCommandProc(commandId C.int, flag C.int) C.int {
 //export goHookCommandProc2
 func goHookCommandProc2(section unsafe.Pointer, commandId C.int, val C.int, valhw C.int, relmode C.int, hwnd unsafe.Pointer, proj unsafe.Pointer) C.int {
 	// Similar to hookCommandProc, check if this is one of our commands
-	for _, cmdID := range registeredCommands {
+	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
 			// Command was triggered - log it to console
-			ConsoleLog(fmt.Sprintf("GoReaper action triggered! Command ID: %d (via hookcommand2)", int(commandId)))
+			ConsoleLog(fmt.Sprintf("GoReaper action triggered! Command ID: %d (%s) (via hookcommand2)", int(commandId), actionID))
+
+			// Check if we have a handler for this action
+			mutex.RLock()
+			handler, exists := actionHandlers[actionID]
+			mutex.RUnlock()
+
+			if exists {
+				// Execute the handler
+				go handler()
+			}
+
 			return 1 // Return 1 to indicate we handled it
 		}
 	}
@@ -206,4 +253,232 @@ const (
 // RegisterMainAction registers an action in the main section
 func RegisterMainAction(actionID string, description string) (int, error) {
 	return RegisterCustomAction(actionID, description, SectionMain)
+}
+
+// TrackFX related functions
+func GetSelectedTrack() (unsafe.Pointer, error) {
+	if !initialized {
+		return nil, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	// Get the GetFunc pointer using our bridge function
+	getFuncPtr := C.plugin_bridge_get_get_func()
+
+	// Get the GetSetObjectState function pointer
+	cFuncName := C.CString("GetSelectedTrack")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	trackFuncPtr := C.plugin_bridge_call_get_func(getFuncPtr, cFuncName)
+	if trackFuncPtr == nil {
+		return nil, fmt.Errorf("could not get GetSelectedTrack function pointer")
+	}
+
+	// Call GetSelectedTrack(0, 0) - first project, first selected track
+	track := C.plugin_bridge_call_get_selected_track(trackFuncPtr, 0, 0)
+	if track == nil {
+		return nil, fmt.Errorf("no track selected")
+	}
+
+	return track, nil
+}
+
+// GetTrackFXCount gets the number of FX on a track
+func GetTrackFXCount(track unsafe.Pointer) (int, error) {
+	if !initialized {
+		return 0, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_GetCount")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return 0, fmt.Errorf("could not get TrackFX_GetCount function pointer")
+	}
+
+	count := C.plugin_bridge_call_track_fx_get_count(getFuncPtr, track)
+	return int(count), nil
+}
+
+// GetTrackFXName gets the name of an FX
+func GetTrackFXName(track unsafe.Pointer, fxIndex int) (string, error) {
+	if !initialized {
+		return "", fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_GetFXName")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return "", fmt.Errorf("could not get TrackFX_GetFXName function pointer")
+	}
+
+	// Allocate buffer for the name
+	buf := (*C.char)(C.malloc(C.size_t(256)))
+	defer C.free(unsafe.Pointer(buf))
+
+	C.plugin_bridge_call_track_fx_get_name(getFuncPtr, track, C.int(fxIndex), buf, C.int(256))
+
+	return C.GoString(buf), nil
+}
+
+// GetTrackFXParamCount gets the number of parameters for an FX
+func GetTrackFXParamCount(track unsafe.Pointer, fxIndex int) (int, error) {
+	if !initialized {
+		return 0, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_GetNumParams")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return 0, fmt.Errorf("could not get TrackFX_GetNumParams function pointer")
+	}
+
+	count := C.plugin_bridge_call_track_fx_get_param_count(getFuncPtr, track, C.int(fxIndex))
+	return int(count), nil
+}
+
+// GetTrackFXParamName gets the name of a parameter
+func GetTrackFXParamName(track unsafe.Pointer, fxIndex int, paramIndex int) (string, error) {
+	if !initialized {
+		return "", fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_GetParamName")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return "", fmt.Errorf("could not get TrackFX_GetParamName function pointer")
+	}
+
+	// Allocate buffer for the name
+	buf := (*C.char)(C.malloc(C.size_t(256)))
+	defer C.free(unsafe.Pointer(buf))
+
+	C.plugin_bridge_call_track_fx_get_param_name(getFuncPtr, track, C.int(fxIndex), C.int(paramIndex), buf, C.int(256))
+
+	return C.GoString(buf), nil
+}
+
+// GetTrackFXParamValue gets the normalized value (0.0-1.0) of a parameter
+func GetTrackFXParamValue(track unsafe.Pointer, fxIndex int, paramIndex int) (float64, error) {
+	if !initialized {
+		return 0, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_GetParam")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return 0, fmt.Errorf("could not get TrackFX_GetParam function pointer")
+	}
+
+	value := C.plugin_bridge_call_track_fx_get_param(getFuncPtr, track, C.int(fxIndex), C.int(paramIndex), nil, nil)
+	return float64(value), nil
+}
+
+// GetTrackFXParamFormatted gets the formatted value of a parameter as a string
+func GetTrackFXParamFormatted(track unsafe.Pointer, fxIndex int, paramIndex int) (string, error) {
+	if !initialized {
+		return "", fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_GetFormattedParamValue")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return "", fmt.Errorf("could not get TrackFX_GetFormattedParamValue function pointer")
+	}
+
+	// Allocate buffer for the formatted value
+	buf := (*C.char)(C.malloc(C.size_t(256)))
+	defer C.free(unsafe.Pointer(buf))
+
+	C.plugin_bridge_call_track_fx_get_param_formatted(getFuncPtr, track, C.int(fxIndex), C.int(paramIndex), buf, C.int(256))
+
+	return C.GoString(buf), nil
+}
+
+// SetTrackFXParamValue sets the value of a parameter
+func SetTrackFXParamValue(track unsafe.Pointer, fxIndex int, paramIndex int, value float64) error {
+	if !initialized {
+		return fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_SetParam")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return fmt.Errorf("could not get TrackFX_SetParam function pointer")
+	}
+
+	C.plugin_bridge_call_track_fx_set_param(getFuncPtr, track, C.int(fxIndex), C.int(paramIndex), C.double(value))
+
+	return nil
+}
+
+// LogFXParameters logs all parameters of an FX to the REAPER console
+func LogFXParameters(track unsafe.Pointer, fxIndex int) error {
+	// Get FX name
+	fxName, err := GetTrackFXName(track, fxIndex)
+	if err != nil {
+		return fmt.Errorf("failed to get FX name: %v", err)
+	}
+
+	ConsoleLog(fmt.Sprintf("FX: %s", fxName))
+
+	// Get parameter count
+	paramCount, err := GetTrackFXParamCount(track, fxIndex)
+	if err != nil {
+		return fmt.Errorf("failed to get parameter count: %v", err)
+	}
+
+	ConsoleLog(fmt.Sprintf("Parameter count: %d", paramCount))
+
+	// Log each parameter
+	for i := 0; i < paramCount; i++ {
+		paramName, err := GetTrackFXParamName(track, fxIndex, i)
+		if err != nil {
+			return fmt.Errorf("failed to get parameter name: %v", err)
+		}
+
+		paramValue, err := GetTrackFXParamValue(track, fxIndex, i)
+		if err != nil {
+			return fmt.Errorf("failed to get parameter value: %v", err)
+		}
+
+		paramFormatted, err := GetTrackFXParamFormatted(track, fxIndex, i)
+		if err != nil {
+			return fmt.Errorf("failed to get formatted parameter value: %v", err)
+		}
+
+		ConsoleLog(fmt.Sprintf("  Param #%d: %s = %.4f (%s)", i, paramName, paramValue, paramFormatted))
+	}
+
+	return nil
+}
+
+// LogCurrentFX logs parameters of the currently selected FX
+func LogCurrentFX() error {
+	// Get selected track
+	track, err := GetSelectedTrack()
+	if err != nil {
+		return fmt.Errorf("failed to get selected track: %v", err)
+	}
+
+	// For now, just use the first FX on the track
+	// In a more advanced version, we'd get the currently focused FX
+	err = LogFXParameters(track, 0)
+	if err != nil {
+		return fmt.Errorf("failed to log FX parameters: %v", err)
+	}
+
+	return nil
 }

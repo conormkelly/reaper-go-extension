@@ -20,6 +20,17 @@ extern "C" {
 void* plugin_bridge_call_get_func(void* get_func_ptr, const char* name);
 void plugin_bridge_call_show_console_msg(void* func_ptr, const char* message);
 int plugin_bridge_call_register(void* register_func_ptr, const char* name, void* info);
+void* plugin_bridge_call_get_selected_track(void* func_ptr, int proj, int seltrackidx);
+int plugin_bridge_call_track_fx_get_count(void* func_ptr, void* track);
+void plugin_bridge_call_track_fx_get_name(void* func_ptr, void* track, int fx_idx, char* buf, int buf_size);
+int plugin_bridge_call_track_fx_get_param_count(void* func_ptr, void* track, int fx_idx);
+void plugin_bridge_call_track_fx_get_param_name(void* func_ptr, void* track, int fx_idx, int param_idx, char* buf, int buf_size);
+double plugin_bridge_call_track_fx_get_param(void* func_ptr, void* track, int fx_idx, int param_idx, double* minval, double* maxval);
+void plugin_bridge_call_track_fx_get_param_formatted(void* func_ptr, void* track, int fx_idx, int param_idx, char* buf, int buf_size);
+bool plugin_bridge_call_track_fx_set_param(void* func_ptr, void* track, int fx_idx, int param_idx, double val);
+
+void plugin_bridge_set_get_func(void* get_func_ptr);
+void* plugin_bridge_get_get_func();
 
 // Forward declaration of the Go functions
 extern int GoReaperPluginEntry(void* hInstance, void* rec);
