@@ -28,18 +28,19 @@ func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
 		return 0
 	}
 
-	// Now we can use our nice Go functions instead of C calls directly
-	if err := reaper.ConsoleLog("Hello from Go REAPER extension!"); err != nil {
-		fmt.Printf("Error logging to console: %v\n", err)
-	}
+	// Log to the REAPER console
+	reaper.ConsoleLog("----------------------------------------------------------")
+	reaper.ConsoleLog("Hello from Go REAPER extension!")
+	reaper.ConsoleLog("----------------------------------------------------------")
 
-	// Register a basic command using our cleaner API
-	result, err := reaper.RegisterAction("command_id", "GO_HELLO_WORLD")
-	if err != nil {
-		fmt.Printf("Error registering action: %v\n", err)
-	} else {
-		fmt.Printf("Registered command: GO_HELLO_WORLD, result: %d\n", result)
-	}
+	// Register some distinctive actions in the Main section
+	reaper.RegisterMainAction("GO_PURPLE_DRAGON", "Go: Purple Dragon Attack")
+	reaper.RegisterMainAction("GO_RAINBOW_LASER", "Go: Rainbow Laser Beam")
+
+	reaper.ConsoleLog("----------------------------------------------------------")
+	reaper.ConsoleLog("Go plugin loaded successfully! Check Actions > Show action list...")
+	reaper.ConsoleLog("- Main section: Look for actions starting with 'Go:'")
+	reaper.ConsoleLog("----------------------------------------------------------")
 
 	fmt.Println("Go plugin loaded successfully!")
 	return 1

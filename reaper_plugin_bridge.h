@@ -21,8 +21,12 @@ void* plugin_bridge_call_get_func(void* get_func_ptr, const char* name);
 void plugin_bridge_call_show_console_msg(void* func_ptr, const char* message);
 int plugin_bridge_call_register(void* register_func_ptr, const char* name, void* info);
 
-// Forward declaration of the Go function
+// Forward declaration of the Go functions
 extern int GoReaperPluginEntry(void* hInstance, void* rec);
+
+// Command hook callbacks
+extern int goHookCommandProc(int commandId, int flag);
+extern int goHookCommandProc2(void* section, int commandId, int val, int valhw, int relmode, void* hwnd, void* proj);
 
 #ifdef __cplusplus
 }
