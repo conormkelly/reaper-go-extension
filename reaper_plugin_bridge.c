@@ -196,6 +196,37 @@ bool plugin_bridge_call_get_track_name(void* func_ptr, void* track, char* buf, i
     return get_track_name(track, buf, buf_size, flags);
 }
 
+/**
+ * REAPER's GetUserInputs function for creating simple form dialogs
+ */
+bool plugin_bridge_call_get_user_inputs(void* func_ptr, const char* title, int num_inputs, 
+    const char* captions, char* values, int values_sz) {
+// Verify input pointers aren't NULL
+if (!func_ptr || !title || !captions || !values || values_sz <= 0) {
+return false;
+}
+
+bool (*get_user_inputs)(const char*, int, const char*, char*, int) =
+(bool (*)(const char*, int, const char*, char*, int))func_ptr;
+
+return get_user_inputs(title, num_inputs, captions, values, values_sz);
+}
+
+/**
+* REAPER's ShowMessageBox function for standard message boxes
+*/
+int plugin_bridge_call_show_message_box(void* func_ptr, const char* text, const char* title, int type) {
+// Verify input pointers aren't NULL
+if (!func_ptr || !text || !title) {
+return 0; // Return IDOK (1) by default on error
+}
+
+int (*show_message_box)(const char*, const char*, int) =
+(int (*)(const char*, const char*, int))func_ptr;
+
+return show_message_box(text, title, type);
+}
+
 // Global storage for REAPER's GetFunc pointer
 // This is a central lookup mechanism for all REAPER API functions
 // It's accessed from multiple functions but is set only once during initialization

@@ -17,6 +17,11 @@ func RegisterAll() error {
 		return err
 	}
 
+	// Register UI Test action
+	if err := RegisterFXDialogTest(); err != nil {
+		return err
+	}
+
 	// Register other actions here as they are implemented
 
 	reaper.ConsoleLog("----------------------------------------------------------")

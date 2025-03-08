@@ -34,6 +34,13 @@ bool plugin_bridge_call_track_fx_set_param(void* func_ptr, void* track, int fx_i
 double plugin_bridge_call_track_get_info_value(void* func_ptr, void* track, const char* param);
 bool plugin_bridge_call_get_track_name(void* func_ptr, void* track, char* buf, int buf_size, int* flags);
 
+// GetUserInputs - Simple form dialog
+bool plugin_bridge_call_get_user_inputs(void* func_ptr, const char* title, int num_inputs, 
+    const char* captions, char* values, int values_sz);
+
+// ShowMessageBox - Standard message box
+int plugin_bridge_call_show_message_box(void* func_ptr, const char* text, const char* title, int type);
+
 void plugin_bridge_set_get_func(void* get_func_ptr);
 void* plugin_bridge_get_get_func();
 

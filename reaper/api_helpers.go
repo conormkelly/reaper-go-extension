@@ -39,6 +39,41 @@ func ListAvailableFunctions(functionNames []string) {
 	}
 }
 
+// IsFunctionAvailable checks if a specific REAPER function exists
+func IsFunctionAvailable(functionName string) bool {
+	if !initialized {
+		return false
+	}
+
+	getFuncPtr := C.plugin_bridge_get_get_func()
+	if getFuncPtr == nil {
+		return false
+	}
+
+	cFuncName := C.CString(functionName)
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	funcPtr := C.plugin_bridge_call_get_func(getFuncPtr, cFuncName)
+	return funcPtr != nil
+}
+
+// GetFunctionPointer returns a pointer to a REAPER function if available
+func GetFunctionPointer(functionName string) unsafe.Pointer {
+	if !initialized {
+		return nil
+	}
+
+	getFuncPtr := C.plugin_bridge_get_get_func()
+	if getFuncPtr == nil {
+		return nil
+	}
+
+	cFuncName := C.CString(functionName)
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	return C.plugin_bridge_call_get_func(getFuncPtr, cFuncName)
+}
+
 // ReaperConsoleLog sends a message directly to the REAPER console without our package's initialization check
 // This is useful for debugging when the main initialization may have failed
 func ReaperConsoleLog(message string) {
