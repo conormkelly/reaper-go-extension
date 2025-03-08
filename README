@@ -1,18 +1,27 @@
-This is the REAPER C/C++ extension plug-in mini-SDK
+# REAPER Go Extension
 
-Paths:
+A Go-based extension for REAPER using CGO.
 
-sdk/             -- contains headers to use
-reaper-plugins/  -- contains source to some plug-ins which are included with REAPER
-                    (these are not to be used as models for well-designed plug-ins, 
-                    but they may be useful and/or available for LGPL compliance ;)
+This project is an experiment to create REAPER extensions using Go with CGO to bridge to the C++ REAPER API.
 
-Paths that should be added in order to compile:
+## Setup Instructions
 
-WDL/
+1. Clone this repository:
 
-To compile most of this, merge or symlink in WDL:
+   ```sh
+   git clone https://github.com/conormkelly/reaper-golang-extension.git
+   cd reaper-golang-extension
+   ```
 
-git remote add wdl https://github.com/justinfrankel/WDL.git
-git fetch --all
-git merge --allow-unrelated-histories wdl/main
+2. Build the extension:
+
+   ```sh
+   make install
+   ```
+
+## Project Structure
+
+- `src/` - Go and C bridge code for the extension
+- `build/` - Output directory for compiled files
+- `sdk/` - REAPER SDK headers
+- `WDL/` - WDL dependency required by the SDK
