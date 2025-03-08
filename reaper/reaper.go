@@ -154,7 +154,7 @@ func goHookCommandProc(commandId C.int, flag C.int) C.int {
 
 			if exists {
 				// Execute the handler
-				go handler()
+				handler()
 			}
 
 			return 1 // Return 1 to indicate we handled it
@@ -165,6 +165,13 @@ func goHookCommandProc(commandId C.int, flag C.int) C.int {
 
 //export goHookCommandProc2
 func goHookCommandProc2(section unsafe.Pointer, commandId C.int, val C.int, valhw C.int, relmode C.int, hwnd unsafe.Pointer, proj unsafe.Pointer) C.int {
+	// Called by REAPER when an action is triggered. Return 1 if handled, 0 to pass to other plugins.
+	// commandId: unique identifier for the action
+	// val, valhw: action parameters that may contain state information
+	// relmode: relative mouse mode (0=absolute, 1/2=relative from last value)
+	// hwnd: window handle
+	// proj: project context"
+
 	// Similar to hookCommandProc, check if this is one of our commands
 	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
@@ -178,7 +185,7 @@ func goHookCommandProc2(section unsafe.Pointer, commandId C.int, val C.int, valh
 
 			if exists {
 				// Execute the handler
-				go handler()
+				handler()
 			}
 
 			return 1 // Return 1 to indicate we handled it
@@ -187,7 +194,8 @@ func goHookCommandProc2(section unsafe.Pointer, commandId C.int, val C.int, valh
 	return 0 // Not our command, let REAPER handle it
 }
 
-// RegisterCustomAction registers an action using the correct SWS-like approach
+// RegisterCustomAction uses a two-step registration process: first register a command ID, then register the custom
+// action details. Both must succeed for the action to appear in REAPER's action list.
 func RegisterCustomAction(actionID string, description string, sectionID int) (int, error) {
 	if !initialized {
 		return -1, fmt.Errorf("REAPER functions not initialized")
