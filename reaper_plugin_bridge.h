@@ -33,6 +33,9 @@ void plugin_bridge_set_get_func(void* get_func_ptr);
 void* plugin_bridge_get_get_func();
 
 // Forward declaration of the Go functions
+
+// GoReaperPluginEntry is the entry point called by REAPER. This function bridges between 
+// REAPER's C API and our Go code. hInstance is the module handle, rec contains REAPER API functions
 extern int GoReaperPluginEntry(void* hInstance, void* rec);
 
 // Command hook callbacks
