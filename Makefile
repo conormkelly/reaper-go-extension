@@ -8,10 +8,13 @@ BUILD_DIR=./build
 # Set extension based on platform
 ifeq ($(GOOS),windows)
   EXT=.dll
+  INSTALL_PATH="$(APPDATA)/REAPER/UserPlugins/"
 else ifeq ($(GOOS),darwin)
   EXT=.dylib
+  INSTALL_PATH="$(HOME)/Library/Application Support/REAPER/UserPlugins/"
 else
   EXT=.so
+  INSTALL_PATH="$(HOME)/.config/REAPER/UserPlugins/"
 endif
 
 # Make sure build directory exists
@@ -29,11 +32,15 @@ $(BUILD_DIR)/reaper_plugin_bridge.o: $(SRC_DIR)/reaper_plugin_bridge.c $(SRC_DIR
 
 # Link everything together
 $(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o
+ifeq ($(GOOS),darwin)
 	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/libgo_reaper.a -framework CoreFoundation -lpthread
+else
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/libgo_reaper.a -lpthread
+endif
 
-# Install the plugin to REAPER's plugin directory (macOS path shown)
+# Install the plugin to REAPER's plugin directory
 install: $(BUILD_DIR)/reaper_hello_go$(EXT)
-	cp $(BUILD_DIR)/reaper_hello_go$(EXT) "$(HOME)/Library/Application Support/REAPER/UserPlugins/"
+	cp $(BUILD_DIR)/reaper_hello_go$(EXT) $(INSTALL_PATH)
 
 clean:
 	rm -rf $(BUILD_DIR)/*
