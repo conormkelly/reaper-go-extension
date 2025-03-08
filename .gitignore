@@ -3,3 +3,6 @@ build/
 
 # MacOS
 .DS_STORE
+
+# Logging
+reaper.log
