@@ -4,6 +4,6 @@ package main
 // find and understand our CGO dependencies.
 
 /*
-#cgo CFLAGS: -I${SRCDIR} -I${SRCDIR}/../sdk
+#cgo CFLAGS: -I${SRCDIR} -I${SRCDIR}/sdk
 */
 import "C"
