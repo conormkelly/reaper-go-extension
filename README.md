@@ -21,20 +21,98 @@ This project is an experiment to create REAPER extensions using Go with CGO to b
 
 ## Project Structure
 
-- `build/` - Output directory for compiled files
-- `sdk/` - REAPER SDK headers
-- `WDL/` - WDL dependency required by the SDK
-- `reaper_plugin_bridge.c/h` - Enables Go code to interact with REAPER's C/C++ API
-- `c_go_config.go` - For IDE Language server to find CGO dependencies
-- `main.go` - Go entry point and extension logic implementation
-- `reaper/reaper.go` - Go wrapper for REAPER functions providing a Go-friendly API
+```txt
+reaper-go-extension/
+├── actions/              # Package for all action handlers
+│   ├── fx_prototype.go   # FX prototype-specific functionality
+│   └── registry.go       # Central registry for action registration
+├── core/                 # Core extension functionality 
+│   └── bridge.go         # Core initialization and plugin entry logic
+├── reaper/               # REAPER API wrappers
+│   ├── actions.go        # Action registration and handling
+│   ├── api.go            # Core API initialization
+│   ├── console.go        # Console logging functions
+│   ├── fx.go             # FX-related functions
+│   ├── tracks.go         # Track-related functions
+│   └── types.go          # Type definitions
+├── main.go               # Main entry point and plugin export
+├── c_go_config.go        # CGO configuration
+├── reaper_plugin_bridge.c # C bridge code for REAPER API
+└── reaper_plugin_bridge.h # C bridge header
+```
 
-## Features
+### Key Components
 
-- Register custom actions in REAPER
-- Access track and FX information
-- Log to REAPER console
-- Manipulate FX parameters
+- **main.go**: The entry point for the extension, exporting the `GoReaperPluginEntry` function which REAPER calls when loading the plugin.
+
+- **reaper/**: Contains Go wrappers for REAPER's C API, making it easier to work with REAPER from Go.
+  
+- **actions/**: Contains all the custom actions that this extension provides, with a central registry to handle action registration.
+
+- **core/**: Handles core initialization and setup required for the extension to work with REAPER.
+
+- **reaper_plugin_bridge.c/h**: A C bridge that connects Go code to REAPER's C API, handling function pointer conversions and memory management between the two languages.
+
+## Adding New Actions
+
+To add a new action to the extension:
+
+1. Create a new file in the `actions/` directory (e.g., `actions/my_action.go`)
+2. Define your action handler and registration function
+3. Add your registration function to `actions/registry.go`
+
+Example of a new action file:
+
+```go
+package actions
+
+import (
+    "fmt"
+    "go-reaper/reaper"
+)
+
+// RegisterMyAction registers the new action
+func RegisterMyAction() error {
+    actionID, err := reaper.RegisterMainAction("GO_MY_ACTION", "Go: My New Action")
+    if err != nil {
+        return fmt.Errorf("failed to register action: %v", err)
+    }
+    
+    reaper.SetActionHandler("GO_MY_ACTION", handleMyAction)
+    return nil
+}
+
+// handleMyAction handles the action when triggered
+func handleMyAction() {
+    reaper.ConsoleLog("My action was triggered!")
+    // Add your action's functionality here
+}
+```
+
+Then update `actions/registry.go` to register your new action:
+
+```go
+// RegisterAll registers all actions
+func RegisterAll() error {
+    // Existing registrations...
+    
+    // Register your new action
+    if err := RegisterMyAction(); err != nil {
+        return err
+    }
+    
+    return nil
+}
+```
+
+## Working with REAPER's API
+
+The `reaper/` package provides Go wrappers for common REAPER API functions. If you need to add support for additional REAPER functions:
+
+1. Choose the appropriate file in `reaper/` based on functionality 
+2. Add the new function wrapper
+3. Update the C bridge in `reaper_plugin_bridge.c/h` if necessary
+
 
 ## Plugin Bridge
 
@@ -206,4 +284,4 @@ This project wouldn't be possible without:
 
 The REAPER SDK and WDL are property of Justin Frankel / Cockos Incorporated and are used in accordance with their licensing terms.
 
-The remaining Go code is provided under the [MIT License](LICENSE)
+The remaining Go code is provided under the [MIT License](LICENSE).

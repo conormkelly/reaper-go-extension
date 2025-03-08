@@ -9,34 +9,9 @@ import (
 	"fmt"
 	"unsafe"
 
-	"go-reaper/reaper"
+	"go-reaper/actions"
+	"go-reaper/core"
 )
-
-// Add the action handler for LLM FX Prototype
-func handleFXPrototype() {
-	reaper.ConsoleLog("----- LLM FX Prototype Activated -----")
-
-	// Get FX info as structured data
-	fxInfosJSON, err := reaper.GetCurrentFXInfoJSON()
-	if err != nil {
-		reaper.ConsoleLog(fmt.Sprintf("Error getting FX info: %v", err))
-		return
-	}
-
-	// Log the JSON data
-	reaper.ConsoleLog("FX Parameters as JSON:")
-	reaper.ConsoleLog(fxInfosJSON)
-
-	// Also log the parameters in a readable format for reference
-	err = reaper.LogCurrentFX()
-	if err != nil {
-		reaper.ConsoleLog(fmt.Sprintf("Error logging FX details: %v", err))
-		return
-	}
-
-	reaper.ConsoleLog("LLM FX Prototype step 1 complete! The FX parameters have been collected.")
-	reaper.ConsoleLog("Future steps: Add user input dialog and LLM integration.")
-}
 
 //export GoReaperPluginEntry
 func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
@@ -48,31 +23,17 @@ func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
 		return 0
 	}
 
-	// Initialize our REAPER API wrapper
-	if err := reaper.Initialize(rec); err != nil {
+	// Initialize core functionality
+	if err := core.Initialize(hInstance, rec); err != nil {
 		fmt.Printf("Failed to initialize REAPER: %v\n", err)
 		return 0
 	}
 
-	// Log to the REAPER console
-	reaper.ConsoleLog("----------------------------------------------------------")
-	reaper.ConsoleLog("Hello from Go REAPER extension!")
-	reaper.ConsoleLog("----------------------------------------------------------")
-
-	// Register our new LLM FX Prototype action
-	FXPrototypeID, err := reaper.RegisterMainAction("GO_FX_PROTOTYPE", "Go: LLM FX Prototype")
-	if err != nil {
-		reaper.ConsoleLog(fmt.Sprintf("Failed to register LLM FX Prototype: %v", err))
-	} else {
-		reaper.ConsoleLog(fmt.Sprintf("LLM FX Prototype registered with ID: %d", FXPrototypeID))
-		// Register the handler for the action
-		reaper.SetActionHandler("GO_FX_PROTOTYPE", handleFXPrototype)
+	// Register all actions
+	if err := actions.RegisterAll(); err != nil {
+		fmt.Printf("Failed to register actions: %v\n", err)
+		return 0
 	}
-
-	reaper.ConsoleLog("----------------------------------------------------------")
-	reaper.ConsoleLog("Go plugin loaded successfully! Check Actions > Show action list...")
-	reaper.ConsoleLog("- Main section: Look for actions starting with 'Go:'")
-	reaper.ConsoleLog("----------------------------------------------------------")
 
 	fmt.Println("Go plugin loaded successfully!")
 	return 1

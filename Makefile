@@ -17,13 +17,17 @@ else
   INSTALL_PATH="$(HOME)/.config/REAPER/UserPlugins/"
 endif
 
+# Find all Go source files
+GO_SRC_FILES := $(shell find $(SRC_DIR) -name "*.go")
+
 # Make sure build directory exists
 $(shell mkdir -p $(BUILD_DIR))
 
 all: $(BUILD_DIR)/reaper_hello_go$(EXT)
 
 # First compile the Go code to a temporary archive
-$(BUILD_DIR)/libgo_reaper.a: $(SRC_DIR)/main.go $(SRC_DIR)/reaper/reaper.go
+# This now depends on all Go source files instead of just main.go and reaper.go
+$(BUILD_DIR)/libgo_reaper.a: $(GO_SRC_FILES)
 	go build -buildmode=c-archive -o $(BUILD_DIR)/libgo_reaper.a main.go
 
 # Compile the bridge code
