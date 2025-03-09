@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"go-reaper/pkg/logger"
 	"go-reaper/reaper"
 )
 
@@ -20,9 +21,9 @@ func Initialize(hInstance unsafe.Pointer, rec unsafe.Pointer) error {
 	}
 
 	// Log to the REAPER console
-	LogDebug("----------------------------------------------------------")
-	LogDebug("Hello from Go REAPER extension!")
-	LogDebug("----------------------------------------------------------")
+	logger.Debug("----------------------------------------------------------")
+	logger.Debug("Hello from Go REAPER extension!")
+	logger.Debug("----------------------------------------------------------")
 
 	return nil
 }
