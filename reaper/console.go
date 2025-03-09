@@ -1,8 +1,8 @@
 package reaper
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/.. -I${SRCDIR}/../sdk
-#include "../reaper_plugin_bridge.h"
+#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../sdk
+#include "../c/bridge.h"
 #include <stdlib.h>
 */
 import "C"

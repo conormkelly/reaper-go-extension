@@ -1,4 +1,4 @@
-#include "reaper_ext_logging.h"
+#include "logging.h"
 #include <stdio.h>
 #include <stdlib.h>  // For getenv
 #include <string.h>

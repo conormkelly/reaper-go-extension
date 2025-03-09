@@ -5,8 +5,8 @@
 // The bridge pattern allows Go code to call REAPER API functions and
 // allows REAPER to call back into Go code through registered callbacks.
 
-#include "reaper_plugin_bridge.h"
-#include "reaper_ext_logging.h"
+#include "bridge.h"
+#include "logging.h"
 
 // Implementation of the bridge functions
 

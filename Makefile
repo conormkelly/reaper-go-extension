@@ -35,12 +35,12 @@ $(BUILD_DIR)/libgo_reaper.a: $(GO_SRC_FILES)
 	go build -buildmode=c-archive -o $(BUILD_DIR)/libgo_reaper.a main.go
 
 # Compile the bridge code
-$(BUILD_DIR)/reaper_plugin_bridge.o: $(SRC_DIR)/reaper_plugin_bridge.c $(SRC_DIR)/reaper_plugin_bridge.h
-	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/reaper_plugin_bridge.c -o $(BUILD_DIR)/reaper_plugin_bridge.o
+$(BUILD_DIR)/bridge.o: $(SRC_DIR)/c/bridge.c $(SRC_DIR)/c/bridge.h
+	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/c/bridge.c -o $(BUILD_DIR)/bridge.o
 
 # Compile the logging code
-$(BUILD_DIR)/reaper_ext_logging.o: $(SRC_DIR)/reaper_ext_logging.c $(SRC_DIR)/reaper_ext_logging.h
-	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/reaper_ext_logging.c -o $(BUILD_DIR)/reaper_ext_logging.o
+$(BUILD_DIR)/logging.o: $(SRC_DIR)/c/logging.c $(SRC_DIR)/c/logging.h
+	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/c/logging.c -o $(BUILD_DIR)/logging.o
 
 # Compile the keyring bridge code (for macOS only)
 ifeq ($(GOOS),darwin)
@@ -50,11 +50,11 @@ endif
 
 # Link everything together
 ifeq ($(GOOS),darwin)
-$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/krbridge.o
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
 else
-$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/libgo_reaper.a -lpthread
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/libgo_reaper.a -lpthread
 endif
 
 # Install the plugin to REAPER's plugin directory

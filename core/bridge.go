@@ -1,8 +1,8 @@
 package core
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/.. -I${SRCDIR}/../sdk
-#include "../reaper_plugin_bridge.h"
+#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../sdk
+#include "../c/bridge.h"
 */
 import "C"
 import (

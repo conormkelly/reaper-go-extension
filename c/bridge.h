@@ -11,7 +11,7 @@ typedef struct project_config_extension_t project_config_extension_t;
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include "./sdk/reaper_plugin.h"
+#include "../sdk/reaper_plugin.h"
 
 // Helper functions for the Go code to call
 #ifdef __cplusplus

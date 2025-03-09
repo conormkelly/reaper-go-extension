@@ -17,7 +17,7 @@ import (
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "../reaper_ext_logging.h"
+#include "../c/logging.h"
 
 #import <Cocoa/Cocoa.h>
 

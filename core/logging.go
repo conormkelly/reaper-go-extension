@@ -1,8 +1,8 @@
 package core
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/.. -I${SRCDIR}/../sdk
-#include "../reaper_ext_logging.h"
+#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../sdk
+#include "../c/logging.h"
 #include <stdlib.h>
 */
 import "C"
