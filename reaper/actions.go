@@ -20,6 +20,7 @@ extern int goHookCommandProc2(void* section, int commandId, int val, int valhw, 
 import "C"
 import (
 	"fmt"
+	"go-reaper/pkg/logger"
 	"unsafe"
 )
 
@@ -55,7 +56,7 @@ func goHookCommandProc(commandId C.int, flag C.int) C.int {
 	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
 			// Log that the command was triggered
-			// logger.Info("GoReaper action triggered! Command ID: %d (%s)", int(commandId), actionID)
+			logger.Info("GoReaper action triggered! Command ID: %d (%s)", int(commandId), actionID)
 
 			// Check if we have a handler for this action
 			mutex.RLock()
@@ -86,7 +87,7 @@ func goHookCommandProc2(section unsafe.Pointer, commandId C.int, val C.int, valh
 	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
 			// Command was triggered - log it to console
-			// logger.Info("GoReaper action triggered! Command ID: %d (%s) (via hookcommand2)", int(commandId), actionID)
+			logger.Info("GoReaper action triggered! Command ID: %d (%s) (via hookcommand2)", int(commandId), actionID)
 
 			// Check if we have a handler for this action
 			mutex.RLock()
@@ -146,13 +147,12 @@ func RegisterCustomAction(actionID string, description string, sectionID int) (i
 	cCustomAction := C.CString("custom_action")
 	defer C.free(unsafe.Pointer(cCustomAction))
 
-	// caResult var, unused because of commented logs below (temporary)
-	_ = C.plugin_bridge_call_register(registerFuncPtr, cCustomAction, unsafe.Pointer(&customAction))
+	caResult := C.plugin_bridge_call_register(registerFuncPtr, cCustomAction, unsafe.Pointer(&customAction))
 
 	mutex.Unlock()
 
-	// logger.Info("Registered custom action: %s (%s) in section %d", actionID, description, sectionID)
-	// logger.Info("Command ID result: %d, Custom action result: %d", cmdID, int(caResult))
+	logger.Info("Registered custom action: %s (%s) in section %d", actionID, description, sectionID)
+	logger.Info("Command ID result: %d, Custom action result: %d", cmdID, int(caResult))
 
 	return cmdID, nil
 }

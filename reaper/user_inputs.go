@@ -8,6 +8,7 @@ package reaper
 import "C"
 import (
 	"fmt"
+	"go-reaper/pkg/logger"
 	"runtime"
 	"strings"
 	"sync"
@@ -100,11 +101,11 @@ func GetUserInputs(title string, fields []string, defaults []string) ([]string, 
 	*(*C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(cValuesBuf)) + uintptr(bufferSize-1))) = 0
 
 	// Log what we're about to do
-	// logger.Debug("Showing GetUserInputs dialog: %s", title)
+	logger.Debug("Showing GetUserInputs dialog: %s", title)
 
 	// Ensure we're on the main thread
-	// mainThread := runtime.NumGoroutine() // Just a debug helper to verify thread
-	// logger.Debug("Running on goroutine #%d", mainThread)
+	mainThread := runtime.NumGoroutine() // Just a debug helper to verify thread
+	logger.Debug("Running on goroutine #%d", mainThread)
 
 	// Call GetUserInputs
 	result := C.plugin_bridge_call_get_user_inputs(
@@ -118,13 +119,13 @@ func GetUserInputs(title string, fields []string, defaults []string) ([]string, 
 
 	// Check result
 	if !bool(result) {
-		// logger.Info("User cancelled the dialog")
+		logger.Info("User cancelled the dialog")
 		return nil, fmt.Errorf("user cancelled the dialog")
 	}
 
 	// Safely convert the buffer to a Go string
 	goValues := C.GoString(cValuesBuf)
-	// logger.Info("Dialog completed with result: %s", goValues)
+	logger.Info("Dialog completed with result: %s", goValues)
 
 	// Split by comma and return
 	values := strings.Split(goValues, ",")
@@ -139,7 +140,7 @@ func MessageBox(text string, title string) error {
 	uiMutex.Lock()
 	defer uiMutex.Unlock()
 
-	// logger.Info("[MessageBox] %s: %s", title, text)
+	logger.Info("[MessageBox] %s: %s", title, text)
 
 	if !initialized {
 		return fmt.Errorf("REAPER functions not initialized")
@@ -169,7 +170,7 @@ func MessageBox(text string, title string) error {
 		C.int(MB_OK),
 	)
 
-	// logger.Debug("Message box %s completed", title)
+	logger.Debug("Message box %s completed", title)
 	return nil
 }
 
@@ -181,7 +182,7 @@ func YesNoBox(text string, title string) (bool, error) {
 	defer uiMutex.Unlock()
 
 	// Always log the question
-	// logger.Info("[QUESTION] %s: %s", title, text)
+	logger.Info("[QUESTION] %s: %s", title, text)
 
 	if !initialized {
 		return false, fmt.Errorf("REAPER functions not initialized")
@@ -211,6 +212,6 @@ func YesNoBox(text string, title string) (bool, error) {
 		C.int(MB_YESNO),
 	)
 
-	// logger.Debug("Yes/No box %s completed with result %d", title, int(result))
+	logger.Debug("Yes/No box %s completed with result %d", title, int(result))
 	return int(result) == IDYES, nil
 }
