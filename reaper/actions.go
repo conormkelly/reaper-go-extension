@@ -55,7 +55,7 @@ func goHookCommandProc(commandId C.int, flag C.int) C.int {
 	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
 			// Log that the command was triggered
-			ConsoleLog(fmt.Sprintf("GoReaper action triggered! Command ID: %d (%s)", int(commandId), actionID))
+			// core.LogInfo("GoReaper action triggered! Command ID: %d (%s)", int(commandId), actionID)
 
 			// Check if we have a handler for this action
 			mutex.RLock()
@@ -86,7 +86,7 @@ func goHookCommandProc2(section unsafe.Pointer, commandId C.int, val C.int, valh
 	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
 			// Command was triggered - log it to console
-			ConsoleLog(fmt.Sprintf("GoReaper action triggered! Command ID: %d (%s) (via hookcommand2)", int(commandId), actionID))
+			// core.LogInfo("GoReaper action triggered! Command ID: %d (%s) (via hookcommand2)", int(commandId), actionID)
 
 			// Check if we have a handler for this action
 			mutex.RLock()
@@ -146,14 +146,13 @@ func RegisterCustomAction(actionID string, description string, sectionID int) (i
 	cCustomAction := C.CString("custom_action")
 	defer C.free(unsafe.Pointer(cCustomAction))
 
-	caResult := C.plugin_bridge_call_register(registerFuncPtr, cCustomAction, unsafe.Pointer(&customAction))
+	// caResult var, unused because of commented logs below (temporary)
+	_ = C.plugin_bridge_call_register(registerFuncPtr, cCustomAction, unsafe.Pointer(&customAction))
 
 	mutex.Unlock()
 
-	ConsoleLog(fmt.Sprintf("Registered custom action: %s (%s) in section %d",
-		actionID, description, sectionID))
-	ConsoleLog(fmt.Sprintf("  Command ID result: %d, Custom action result: %d",
-		cmdID, int(caResult)))
+	// core.LogInfo("Registered custom action: %s (%s) in section %d", actionID, description, sectionID)
+	// core.LogInfo("Command ID result: %d, Custom action result: %d", cmdID, int(caResult))
 
 	return cmdID, nil
 }

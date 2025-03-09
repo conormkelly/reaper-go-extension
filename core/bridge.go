@@ -20,9 +20,9 @@ func Initialize(hInstance unsafe.Pointer, rec unsafe.Pointer) error {
 	}
 
 	// Log to the REAPER console
-	reaper.ConsoleLog("----------------------------------------------------------")
-	reaper.ConsoleLog("Hello from Go REAPER extension!")
-	reaper.ConsoleLog("----------------------------------------------------------")
+	LogDebug("----------------------------------------------------------")
+	LogDebug("Hello from Go REAPER extension!")
+	LogDebug("----------------------------------------------------------")
 
 	return nil
 }

@@ -7,22 +7,21 @@ package reaper
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 )
 
 // ListAvailableFunctions checks if specific REAPER functions exist and logs the results
 func ListAvailableFunctions(functionNames []string) {
 	if !initialized {
-		ConsoleLog("REAPER functions not initialized")
+		// core.LogError("REAPER functions not initialized")
 		return
 	}
 
-	ConsoleLog("Checking for available functions:")
+	// core.LogDebug("Checking for available functions:")
 
 	getFuncPtr := C.plugin_bridge_get_get_func()
 	if getFuncPtr == nil {
-		ConsoleLog("Error: GetFunc function pointer is nil")
+		// core.LogError("Error: GetFunc function pointer is nil")
 		return
 	}
 
@@ -32,9 +31,9 @@ func ListAvailableFunctions(functionNames []string) {
 		C.free(unsafe.Pointer(cFuncName))
 
 		if funcPtr != nil {
-			ConsoleLog(fmt.Sprintf("- %s: Available", name))
+			// core.LogDebug("- %s: Available", name)
 		} else {
-			ConsoleLog(fmt.Sprintf("- %s: Not found", name))
+			// core.LogWarning("- %s: Not found", name)
 		}
 	}
 }

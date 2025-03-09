@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"go-reaper/reaper"
+	"go-reaper/core"
 	"io"
 	"net/http"
 	"time"
@@ -57,7 +57,7 @@ func NewOpenAIClient(apiKey string) *OpenAIClient {
 // SendPrompt implements the Client interface
 func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, error) {
 	// Log the start of the API call
-	reaper.ConsoleLog("Starting OpenAI API call...")
+	core.LogDebug("Starting OpenAI API call...")
 
 	// Set up the request body
 	type RequestBody struct {
@@ -82,7 +82,7 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 		return "", fmt.Errorf("error marshaling request body: %v", err)
 	}
 
-	reaper.ConsoleLog("Request body prepared, creating HTTP request...")
+	core.LogDebug("Request body prepared, creating HTTP request...")
 
 	// Create the request
 	req, err := http.NewRequest("POST", OpenAICompletionURL, bytes.NewBuffer(jsonData))
@@ -94,7 +94,7 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
 
-	reaper.ConsoleLog("Sending HTTP request to OpenAI API...")
+	core.LogDebug("Sending HTTP request to OpenAI API...")
 
 	// Send the request
 	resp, err := c.HTTPClient.Do(req)
@@ -107,7 +107,7 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 	}
 	defer resp.Body.Close()
 
-	reaper.ConsoleLog(fmt.Sprintf("Received response with status: %d", resp.StatusCode))
+	core.LogDebug("Received response with status: %d", resp.StatusCode)
 
 	// Read the response
 	body, err := io.ReadAll(resp.Body)
@@ -117,11 +117,11 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
-		reaper.ConsoleLog(fmt.Sprintf("API error response: %s", string(body)))
+		core.LogError("API error response: %s", string(body))
 		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	reaper.ConsoleLog(fmt.Sprintf("Successfully read response body (%d bytes)", len(body)))
+	core.LogDebug("Successfully read response body (%d bytes)", len(body))
 
 	// Parse the response
 	var openAIResp struct {
@@ -136,8 +136,8 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 	}
 
 	if err := json.Unmarshal(body, &openAIResp); err != nil {
-		reaper.ConsoleLog(fmt.Sprintf("Error parsing response: %v", err))
-		reaper.ConsoleLog(fmt.Sprintf("Response content: %s", string(body)))
+		core.LogError("Error parsing response: %v", err)
+		core.LogError("Response content: %s", string(body))
 		return "", fmt.Errorf("error parsing API response: %v", err)
 	}
 
@@ -157,6 +157,6 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 		return "", fmt.Errorf("empty content in API response")
 	}
 
-	reaper.ConsoleLog("Successfully parsed OpenAI response")
+	core.LogDebug("Successfully parsed OpenAI response")
 	return content, nil
 }

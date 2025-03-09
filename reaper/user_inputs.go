@@ -100,11 +100,11 @@ func GetUserInputs(title string, fields []string, defaults []string) ([]string, 
 	*(*C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(cValuesBuf)) + uintptr(bufferSize-1))) = 0
 
 	// Log what we're about to do
-	ConsoleLog(fmt.Sprintf("Showing GetUserInputs dialog: %s", title))
+	// core.LogDebug("Showing GetUserInputs dialog: %s", title)
 
 	// Ensure we're on the main thread
-	mainThread := runtime.NumGoroutine() // Just a debug helper to verify thread
-	ConsoleLog(fmt.Sprintf("Running on goroutine #%d", mainThread))
+	// mainThread := runtime.NumGoroutine() // Just a debug helper to verify thread
+	// core.LogDebug("Running on goroutine #%d", mainThread)
 
 	// Call GetUserInputs
 	result := C.plugin_bridge_call_get_user_inputs(
@@ -118,13 +118,13 @@ func GetUserInputs(title string, fields []string, defaults []string) ([]string, 
 
 	// Check result
 	if !bool(result) {
-		ConsoleLog("User cancelled the dialog")
+		// core.LogInfo("User cancelled the dialog")
 		return nil, fmt.Errorf("user cancelled the dialog")
 	}
 
 	// Safely convert the buffer to a Go string
 	goValues := C.GoString(cValuesBuf)
-	ConsoleLog(fmt.Sprintf("Dialog completed with result: %s", goValues))
+	// core.LogInfo("Dialog completed with result: %s", goValues)
 
 	// Split by comma and return
 	values := strings.Split(goValues, ",")
@@ -139,8 +139,7 @@ func MessageBox(text string, title string) error {
 	uiMutex.Lock()
 	defer uiMutex.Unlock()
 
-	// Always log the message - this gives us a fallback if the UI fails
-	ConsoleLog(fmt.Sprintf("[MESSAGE] %s: %s", title, text))
+	// core.LogInfo("[MessageBox] %s: %s", title, text)
 
 	if !initialized {
 		return fmt.Errorf("REAPER functions not initialized")
@@ -170,7 +169,7 @@ func MessageBox(text string, title string) error {
 		C.int(MB_OK),
 	)
 
-	ConsoleLog(fmt.Sprintf("Message box %s completed", title))
+	// core.LogDebug("Message box %s completed", title)
 	return nil
 }
 
@@ -182,7 +181,7 @@ func YesNoBox(text string, title string) (bool, error) {
 	defer uiMutex.Unlock()
 
 	// Always log the question
-	ConsoleLog(fmt.Sprintf("[QUESTION] %s: %s", title, text))
+	// core.LogInfo("[QUESTION] %s: %s", title, text)
 
 	if !initialized {
 		return false, fmt.Errorf("REAPER functions not initialized")
@@ -212,6 +211,6 @@ func YesNoBox(text string, title string) (bool, error) {
 		C.int(MB_YESNO),
 	)
 
-	ConsoleLog(fmt.Sprintf("Yes/No box %s completed with result %d", title, int(result)))
+	// core.LogDebug("Yes/No box %s completed with result %d", title, int(result))
 	return int(result) == IDYES, nil
 }

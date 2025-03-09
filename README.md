@@ -84,7 +84,7 @@ func RegisterMyAction() error {
 
 // handleMyAction handles the action when triggered
 func handleMyAction() {
-    reaper.ConsoleLog("My action was triggered!")
+    core.LogInfo("My action was triggered!")
     // Add your action's functionality here
 }
 ```
