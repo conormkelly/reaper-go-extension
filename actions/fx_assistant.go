@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-reaper/llm"
 	"go-reaper/reaper"
+	"runtime"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -39,50 +40,46 @@ func RegisterFXAssistant() error {
 
 // handleFXAssistant handles the FX Assistant action
 func handleFXAssistant() {
-	// Lock the current goroutine to the OS thread
-	// This ensures we stay on the same thread as REAPER expects
-	// runtime.LockOSThread()
-	// defer runtime.UnlockOSThread()
+	// Lock the current goroutine to the OS thread to ensure thread safety
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	reaper.ConsoleLog("----- LLM FX Assistant Activated -----")
 
-	// Get track info
+	// STEP 1: Get track information
 	trackInfo, err := reaper.GetSelectedTrackInfo()
 	if err != nil {
-		// Handle the case where there's no track selected
 		if strings.Contains(err.Error(), "no track selected") {
+			reaper.ConsoleLog("No track selected")
 			reaper.MessageBox("Please select a track before using the LLM FX Assistant.", "LLM FX Assistant")
-			reaper.ConsoleLog("No track selected. Please select a track before using the LLM FX Assistant.")
 		} else {
-			// Handle other errors
-			reaper.MessageBox(fmt.Sprintf("Error: %v", err), "LLM FX Assistant")
 			reaper.ConsoleLog(fmt.Sprintf("Error getting track info: %v", err))
+			reaper.MessageBox(fmt.Sprintf("Error: %v", err), "LLM FX Assistant")
 		}
 		return
 	}
 
-	// Check if track has FX
+	// STEP 2: Check if track has FX
 	if trackInfo.NumFX == 0 {
+		reaper.ConsoleLog("Selected track has no FX")
 		reaper.MessageBox("Selected track has no FX. Please add FX to the track before using the LLM FX Assistant.", "LLM FX Assistant")
-		reaper.ConsoleLog("Selected track has no FX. Please add FX to the track before using the LLM FX Assistant.")
 		return
 	}
 
-	// Get FX list
+	// STEP 3: Get FX list
 	fxList, err := reaper.GetTrackFXList(trackInfo.MediaTrack)
 	if err != nil {
-		reaper.MessageBox(fmt.Sprintf("Error: %v", err), "LLM FX Assistant")
 		reaper.ConsoleLog(fmt.Sprintf("Error getting FX list: %v", err))
+		reaper.MessageBox(fmt.Sprintf("Error: %v", err), "LLM FX Assistant")
 		return
 	}
 
 	reaper.ConsoleLog(fmt.Sprintf("Found %d FX on track.", len(fxList)))
 
-	// Build FX selection dialog
+	// STEP 4: Show FX selection dialog
 	fxOptions := buildFXSelectionList(fxList)
 	reaper.ConsoleLog(fxOptions)
 
-	// Show FX selection dialog
 	fields := []string{
 		"FX to adjust (comma-separated numbers)",
 		"Your request (e.g., 'make vocals clearer')",
@@ -93,33 +90,31 @@ func handleFXAssistant() {
 		"",  // Empty prompt
 	}
 
-	// Show the dialog
 	results, err := reaper.GetUserInputs("LLM FX Assistant", fields, defaults)
 	if err != nil {
 		reaper.ConsoleLog("User cancelled the dialog")
 		return
 	}
 
-	// Parse the results
+	// STEP 5: Parse user inputs
 	selectedFXIndices, err := parseFXSelection(results[0], len(fxList))
 	if err != nil {
-		reaper.MessageBox(fmt.Sprintf("Invalid FX selection: %v", err), "LLM FX Assistant")
 		reaper.ConsoleLog(fmt.Sprintf("Invalid FX selection: %v", err))
+		reaper.MessageBox(fmt.Sprintf("Invalid FX selection: %v", err), "LLM FX Assistant")
 		return
 	}
 
 	userPrompt := results[1]
 	if userPrompt == "" {
-		reaper.MessageBox("Please provide a request for the LLM FX Assistant.", "LLM FX Assistant")
 		reaper.ConsoleLog("Empty prompt provided")
+		reaper.MessageBox("Please provide a request for the LLM FX Assistant.", "LLM FX Assistant")
 		return
 	}
 
-	// Log the selections
 	reaper.ConsoleLog(fmt.Sprintf("Selected FX indices: %v", selectedFXIndices))
 	reaper.ConsoleLog(fmt.Sprintf("User prompt: %s", userPrompt))
 
-	// Collect FX parameters for the selected FX
+	// STEP 6: Collect FX parameters
 	fxParameters := collectFXParameters(trackInfo.MediaTrack, selectedFXIndices, fxList)
 
 	// Show the parameters (for debugging/validation)
@@ -127,7 +122,7 @@ func handleFXAssistant() {
 	reaper.ConsoleLog("Parameters collected:")
 	reaper.ConsoleLog(parametersText)
 
-	// Ask if the user wants to proceed with LLM analysis
+	// STEP 7: Confirm with user
 	confirmMsg := fmt.Sprintf("Track: %s\nFX selected: %d\nRequest: %s\n\nReady to analyze with LLM?\n\nNote: This will require an OpenAI API key.",
 		trackInfo.Name, len(selectedFXIndices), userPrompt)
 
@@ -137,21 +132,18 @@ func handleFXAssistant() {
 		return
 	}
 
-	// Get API key
+	// STEP 8: Get API key
+	fields = []string{"OpenAI API Key"}
+	defaults = []string{""}
+
 	apiKey, err := getOpenAIKey()
 	if err != nil {
-		reaper.MessageBox(fmt.Sprintf("Error: %v", err), "LLM FX Assistant")
-		reaper.ConsoleLog(fmt.Sprintf("API key error: %v", err))
+		reaper.ConsoleLog(fmt.Sprintf("Error calling GetOpenAIKey: %v", err))
+		reaper.MessageBox(fmt.Sprintf("Error calling GetOpenAIKey: %v", err), "LLM FX Assistant")
 		return
 	}
 
-	// Show processing message
-	reaper.MessageBox("Analyzing parameters with OpenAI...\nThis might take a few seconds.", "LLM FX Assistant")
-
-	// Create LLM client
-	client := llm.NewOpenAIClient(apiKey)
-
-	// Build prompts
+	// STEP 9: Prepare prompts
 	systemPrompt := buildSystemPrompt()
 	userPromptText := buildUserPrompt(fxParameters, userPrompt)
 
@@ -160,29 +152,54 @@ func handleFXAssistant() {
 	reaper.ConsoleLog("User Prompt:")
 	reaper.ConsoleLog(userPromptText)
 
-	// Call LLM
+	// STEP 10: Inform the user
+	reaper.ConsoleLog("About to call OpenAI API")
+	reaper.ConsoleLog("Analyzing parameters with OpenAI... This might take a few seconds.")
+
+	// STEP 11: Create client and make API call
+	// Here we'll use the simplest approach - just call directly
+	client := llm.NewOpenAIClient(apiKey)
+
+	// Make API call
+	reaper.ConsoleLog("Starting OpenAI API call...")
 	responseText, err := client.SendPrompt(systemPrompt, userPromptText)
+
+	// STEP 12: Handle API response
 	if err != nil {
-		reaper.MessageBox(fmt.Sprintf("Error calling LLM API: %v", err), "LLM FX Assistant")
 		reaper.ConsoleLog(fmt.Sprintf("Error calling LLM API: %v", err))
+		reaper.MessageBox(fmt.Sprintf("Error calling LLM API: %v", err), "LLM FX Assistant")
 		return
 	}
 
 	reaper.ConsoleLog("LLM Response:")
 	reaper.ConsoleLog(responseText)
 
-	// Parse the response
-	assistantResponse, err := parseAssistantResponse(responseText)
+	// STEP 13: Parse the response
+	var assistantResponse *AssistantResponse
+	assistantResponse, err = parseAssistantResponse(responseText)
 	if err != nil {
-		reaper.MessageBox(fmt.Sprintf("Error parsing LLM response: %v", err), "LLM FX Assistant")
 		reaper.ConsoleLog(fmt.Sprintf("Error parsing LLM response: %v", err))
+		reaper.MessageBox(fmt.Sprintf("Error parsing LLM response: %v", err), "LLM FX Assistant")
 		return
 	}
 
-	// Format the results for display
+	// STEP 14: Handle empty suggestions case
+	if len(assistantResponse.Suggestions) == 0 {
+		if assistantResponse.Reasoning != "" {
+			message := fmt.Sprintf("The LLM did not suggest any parameter changes.\n\nReason: %s",
+				assistantResponse.Reasoning)
+			reaper.ConsoleLog("No suggestions provided by LLM: " + assistantResponse.Reasoning)
+			reaper.MessageBox(message, "LLM FX Assistant")
+		} else {
+			reaper.MessageBox("The LLM did not suggest any parameter changes for your request. Try being more specific about what you want to achieve.",
+				"LLM FX Assistant")
+		}
+		return
+	}
+
+	// STEP 15: Show suggestions and get user confirmation
 	resultsText := formatAssistantResults(assistantResponse)
 
-	// Ask the user if they want to apply the changes
 	applyMsg := fmt.Sprintf("The LLM suggests these parameter changes:\n\n%s\n\nWould you like to apply these changes?", resultsText)
 	apply, err := reaper.YesNoBox(applyMsg, "LLM FX Assistant - Apply Changes")
 	if err != nil {
@@ -190,12 +207,12 @@ func handleFXAssistant() {
 		return
 	}
 
+	// STEP 16: Apply changes if requested
 	if apply {
-		// Apply the changes
 		err = applyParameterChanges(trackInfo.MediaTrack, assistantResponse.Suggestions)
 		if err != nil {
-			reaper.MessageBox(fmt.Sprintf("Error applying changes: %v", err), "LLM FX Assistant")
 			reaper.ConsoleLog(fmt.Sprintf("Error applying changes: %v", err))
+			reaper.MessageBox(fmt.Sprintf("Error applying changes: %v", err), "LLM FX Assistant")
 			return
 		}
 
@@ -206,7 +223,7 @@ func handleFXAssistant() {
 	}
 }
 
-// buildSystemPrompt creates a system prompt for the LLM that explains the task and format
+// buildSystemPrompt creates a system prompt for the LLM
 func buildSystemPrompt() string {
 	return `You are an audio engineer assistant that helps adjust effects (FX) parameters in a digital audio workstation.
 You will be given information about one or more audio effects including their names and parameters.
@@ -261,8 +278,7 @@ func buildUserPrompt(fxList []reaper.FXInfo, userRequest string) string {
 	return builder.String()
 }
 
-// parseAssistantResponse parses the LLM's text response into a structured AssistantResponse
-// parseAssistantResponse parses the LLM's text response into a structured AssistantResponse
+// parseAssistantResponse parses the LLM's text response
 func parseAssistantResponse(responseText string) (*AssistantResponse, error) {
 	// Validate input
 	if responseText == "" {
@@ -288,26 +304,15 @@ func parseAssistantResponse(responseText string) (*AssistantResponse, error) {
 	var response AssistantResponse
 	if err := json.Unmarshal([]byte(jsonStr), &response); err != nil {
 		reaper.ConsoleLog(fmt.Sprintf("JSON unmarshal error: %v", err))
-		// Log a truncated version of the JSON for debugging
-		if len(jsonStr) > 200 {
-			reaper.ConsoleLog(fmt.Sprintf("JSON (truncated): %s...", jsonStr[:200]))
-		} else {
-			reaper.ConsoleLog(fmt.Sprintf("JSON: %s", jsonStr))
-		}
 		return nil, fmt.Errorf("failed to parse LLM response: %v", err)
 	}
 
-	// Validate the response structure
+	// Initialize empty arrays if needed
 	if response.Suggestions == nil {
-		return nil, fmt.Errorf("response is missing the suggestions array")
+		response.Suggestions = []ParameterSuggestion{}
 	}
 
-	// Validate the response
-	if len(response.Suggestions) == 0 {
-		return nil, fmt.Errorf("no parameter suggestions found in response")
-	}
-
-	// Validate parameter values
+	// Validate parameter values if we have suggestions
 	for i, suggestion := range response.Suggestions {
 		// Validate FX index is present
 		if suggestion.FXIndex < 0 {

@@ -36,12 +36,16 @@ $(BUILD_DIR)/libgo_reaper.a: $(GO_SRC_FILES)
 $(BUILD_DIR)/reaper_plugin_bridge.o: $(SRC_DIR)/reaper_plugin_bridge.c $(SRC_DIR)/reaper_plugin_bridge.h
 	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/reaper_plugin_bridge.c -o $(BUILD_DIR)/reaper_plugin_bridge.o
 
+# Compile the logging code
+$(BUILD_DIR)/reaper_ext_logging.o: $(SRC_DIR)/reaper_ext_logging.c $(SRC_DIR)/reaper_ext_logging.h
+	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/reaper_ext_logging.c -o $(BUILD_DIR)/reaper_ext_logging.o
+
 # Link everything together
-$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o
 ifeq ($(GOOS),darwin)
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
 else
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/libgo_reaper.a -lpthread
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/libgo_reaper.a -lpthread
 endif
 
 # Install the plugin to REAPER's plugin directory

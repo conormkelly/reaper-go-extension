@@ -8,8 +8,15 @@ package reaper
 import "C"
 import (
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
 	"unsafe"
+)
+
+var (
+	// Global mutex for UI operations
+	uiMutex sync.Mutex
 )
 
 // Dialog button constants
@@ -32,11 +39,15 @@ const (
 )
 
 // GetUserInputs shows a dialog with fields for user input
-// title: the dialog title
-// fields: array of field labels
-// defaults: array of default values for fields (same length as fields)
-// Returns: array of user input values, error if dialog was cancelled
 func GetUserInputs(title string, fields []string, defaults []string) ([]string, error) {
+	// Use a global mutex to ensure only one dialog can be shown at a time
+	uiMutex.Lock()
+	defer uiMutex.Unlock()
+
+	// Lock the OS thread to ensure UI operations happen on the same thread
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if !initialized {
 		return nil, fmt.Errorf("REAPER functions not initialized")
 	}
@@ -67,15 +78,33 @@ func GetUserInputs(title string, fields []string, defaults []string) ([]string, 
 	// Join default values with commas
 	defaultValues := strings.Join(defaults, ",")
 
-	// Allocate a buffer for the values
-	// Add extra space for safety
-	bufferSize := 1024
-	if len(defaultValues)*2 > bufferSize {
-		bufferSize = len(defaultValues) * 2
+	// Very important: Use a proper buffer with plenty of space
+	bufferSize := 8192 // Much larger buffer to handle any clipboard content
+
+	// Allocate buffer using malloc to ensure it's modifiable
+	cValuesBuf := (*C.char)(C.malloc(C.size_t(bufferSize)))
+	if cValuesBuf == nil {
+		return nil, fmt.Errorf("failed to allocate memory for input buffer")
+	}
+	defer C.free(unsafe.Pointer(cValuesBuf))
+
+	// Zero the entire buffer first
+	C.memset(unsafe.Pointer(cValuesBuf), 0, C.size_t(bufferSize))
+
+	// Copy default values into the buffer
+	if len(defaultValues) > 0 {
+		C.strncpy(cValuesBuf, C.CString(defaultValues), C.size_t(bufferSize-1))
 	}
 
-	cValues := C.CString(defaultValues)
-	defer C.free(unsafe.Pointer(cValues))
+	// Ensure null termination
+	*(*C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(cValuesBuf)) + uintptr(bufferSize-1))) = 0
+
+	// Log what we're about to do
+	ConsoleLog(fmt.Sprintf("Showing GetUserInputs dialog: %s", title))
+
+	// Ensure we're on the main thread
+	mainThread := runtime.NumGoroutine() // Just a debug helper to verify thread
+	ConsoleLog(fmt.Sprintf("Running on goroutine #%d", mainThread))
 
 	// Call GetUserInputs
 	result := C.plugin_bridge_call_get_user_inputs(
@@ -83,36 +112,92 @@ func GetUserInputs(title string, fields []string, defaults []string) ([]string, 
 		cTitle,
 		C.int(len(fields)),
 		cCaptions,
-		cValues,
+		cValuesBuf,
 		C.int(bufferSize),
 	)
 
-	// If user cancelled, return an error
+	// Check result
 	if !bool(result) {
+		ConsoleLog("User cancelled the dialog")
 		return nil, fmt.Errorf("user cancelled the dialog")
 	}
 
-	// Parse result
-	goValues := C.GoString(cValues)
-	return strings.Split(goValues, ","), nil
+	// Safely convert the buffer to a Go string
+	goValues := C.GoString(cValuesBuf)
+	ConsoleLog(fmt.Sprintf("Dialog completed with result: %s", goValues))
+
+	// Split by comma and return
+	values := strings.Split(goValues, ",")
+
+	return values, nil
 }
 
-// ShowMessageBox displays a standard message box and returns the button clicked
-func ShowMessageBox(text string, title string, messageType int) (int, error) {
+// MessageBox is a simplified function that shows a message box with OK button
+// We deliberately avoid using channels, goroutines or complex thread handling
+func MessageBox(text string, title string) error {
+	// Lock the UI mutex to prevent concurrent UI operations
+	uiMutex.Lock()
+	defer uiMutex.Unlock()
+
+	// Always log the message - this gives us a fallback if the UI fails
+	ConsoleLog(fmt.Sprintf("[MESSAGE] %s: %s", title, text))
+
 	if !initialized {
-		return 0, fmt.Errorf("REAPER functions not initialized")
+		return fmt.Errorf("REAPER functions not initialized")
 	}
 
-	// Get the ShowMessageBox function
+	// Get the function pointer
 	cFuncName := C.CString("ShowMessageBox")
 	defer C.free(unsafe.Pointer(cFuncName))
 
 	showMessageBoxPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
 	if showMessageBoxPtr == nil {
-		return 0, fmt.Errorf("could not get ShowMessageBox function pointer")
+		return fmt.Errorf("could not get ShowMessageBox function pointer")
 	}
 
-	// Prepare parameters
+	// Prepare the parameters
+	cText := C.CString(text)
+	defer C.free(unsafe.Pointer(cText))
+
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
+
+	// Call ShowMessageBox
+	C.plugin_bridge_call_show_message_box(
+		showMessageBoxPtr,
+		cText,
+		cTitle,
+		C.int(MB_OK),
+	)
+
+	ConsoleLog(fmt.Sprintf("Message box %s completed", title))
+	return nil
+}
+
+// YesNoBox is a simplified function that shows a Yes/No dialog
+// Returns true if Yes was clicked, false otherwise
+func YesNoBox(text string, title string) (bool, error) {
+	// Lock the UI mutex to prevent concurrent UI operations
+	uiMutex.Lock()
+	defer uiMutex.Unlock()
+
+	// Always log the question
+	ConsoleLog(fmt.Sprintf("[QUESTION] %s: %s", title, text))
+
+	if !initialized {
+		return false, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	// Get the function pointer
+	cFuncName := C.CString("ShowMessageBox")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	showMessageBoxPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if showMessageBoxPtr == nil {
+		return false, fmt.Errorf("could not get ShowMessageBox function pointer")
+	}
+
+	// Prepare the parameters
 	cText := C.CString(text)
 	defer C.free(unsafe.Pointer(cText))
 
@@ -124,24 +209,9 @@ func ShowMessageBox(text string, title string, messageType int) (int, error) {
 		showMessageBoxPtr,
 		cText,
 		cTitle,
-		C.int(messageType),
+		C.int(MB_YESNO),
 	)
 
-	return int(result), nil
-}
-
-// MessageBox is a convenience function that displays a message box with an OK button
-func MessageBox(text string, title string) error {
-	_, err := ShowMessageBox(text, title, MB_OK)
-	return err
-}
-
-// YesNoBox is a convenience function that displays a message box with Yes/No buttons
-// Returns true if Yes was clicked, false if No was clicked
-func YesNoBox(text string, title string) (bool, error) {
-	result, err := ShowMessageBox(text, title, MB_YESNO)
-	if err != nil {
-		return false, err
-	}
-	return result == IDYES, nil
+	ConsoleLog(fmt.Sprintf("Yes/No box %s completed with result %d", title, int(result)))
+	return int(result) == IDYES, nil
 }
