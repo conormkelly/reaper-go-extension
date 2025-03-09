@@ -13,7 +13,7 @@ func RegisterAll() error {
 	}
 
 	// Register Native UI action
-	if err := RegisterNativeDemo(); err != nil {
+	if err := RegisterNativeWindow(); err != nil {
 		return err
 	}
 
