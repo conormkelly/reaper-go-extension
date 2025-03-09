@@ -1,13 +1,13 @@
 package actions
 
 import (
-	"go-reaper/core"
+	"go-reaper/pkg/logger"
 )
 
 // RegisterAll registers all actions
 func RegisterAll() error {
-	core.LogDebug("----------------------------------------------------------")
-	core.LogDebug("Registering Go REAPER extension actions...")
+	logger.Debug("----------------------------------------------------------")
+	logger.Debug("Registering Go REAPER extension actions...")
 
 	// Register FX Assistant (LLM FX Assistant)
 	if err := RegisterFXAssistant(); err != nil {
@@ -25,10 +25,10 @@ func RegisterAll() error {
 
 	// Register other actions here as they are implemented
 
-	core.LogDebug("----------------------------------------------------------")
-	core.LogDebug("Go plugin actions registered successfully!")
-	core.LogDebug("- Main section: Look for actions starting with 'Go:'")
-	core.LogDebug("----------------------------------------------------------")
+	logger.Debug("----------------------------------------------------------")
+	logger.Debug("Go plugin actions registered successfully!")
+	logger.Debug("- Main section: Look for actions starting with 'Go:'")
+	logger.Debug("----------------------------------------------------------")
 
 	return nil
 }

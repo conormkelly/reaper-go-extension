@@ -10,6 +10,7 @@ import (
 
 	"go-reaper/actions"
 	"go-reaper/core"
+	"go-reaper/pkg/logger"
 )
 
 //export GoReaperPluginEntry
@@ -21,26 +22,26 @@ func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
 		actions.CloseKeyringWindow()
 
 		// Perform cleanup tasks including logging shutdown
-		core.CleanupLogging()
+		logger.Cleanup()
 		return 0
 	}
 
 	// Initialize logging system
-	core.InitLogging()
+	logger.Initialize()
 
 	// Initialize core functionality
 	if err := core.Initialize(hInstance, rec); err != nil {
-		core.LogError("Failed to initialize REAPER: %s", err.Error())
+		logger.Error("Failed to initialize REAPER: %v", err)
 		return 0
 	}
 
 	// Register all actions
 	if err := actions.RegisterAll(); err != nil {
-		core.LogError("Failed to register actions: %s", err.Error())
+		logger.Error("Failed to register actions: %v", err)
 		return 0
 	}
 
-	core.LogInfo("Go plugin loaded successfully!")
+	logger.Info("Go plugin loaded successfully!")
 	return 1
 }
 

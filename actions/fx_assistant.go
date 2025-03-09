@@ -3,8 +3,8 @@ package actions
 import (
 	"encoding/json"
 	"fmt"
-	"go-reaper/core"
 	"go-reaper/llm"
+	"go-reaper/pkg/logger"
 	"go-reaper/reaper"
 	"runtime"
 	"strconv"
@@ -34,7 +34,7 @@ func RegisterFXAssistant() error {
 		return fmt.Errorf("failed to register LLM FX Assistant: %v", err)
 	}
 
-	core.LogInfo("LLM FX Assistant registered with ID: %d", actionID)
+	logger.Info("LLM FX Assistant registered with ID: %d", actionID)
 	reaper.SetActionHandler("GO_FX_ASSISTANT", handleFXAssistant)
 	return nil
 }
@@ -45,16 +45,16 @@ func handleFXAssistant() {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	core.LogDebug("----- LLM FX Assistant Activated -----")
+	logger.Debug("----- LLM FX Assistant Activated -----")
 
 	// STEP 1: Get track information
 	trackInfo, err := reaper.GetSelectedTrackInfo()
 	if err != nil {
 		if strings.Contains(err.Error(), "no track selected") {
-			core.LogInfo("No track selected")
+			logger.Info("No track selected")
 			reaper.MessageBox("Please select a track before using the LLM FX Assistant.", "LLM FX Assistant")
 		} else {
-			core.LogError("Error getting track info: %v", err)
+			logger.Error("Error getting track info: %v", err)
 			reaper.MessageBox(fmt.Sprintf("Error: %v", err), "LLM FX Assistant")
 		}
 		return
@@ -62,7 +62,7 @@ func handleFXAssistant() {
 
 	// STEP 2: Check if track has FX
 	if trackInfo.NumFX == 0 {
-		core.LogInfo("Selected track has no FX")
+		logger.Info("Selected track has no FX")
 
 		reaper.MessageBox("Selected track has no FX. Please add FX to the track before using the LLM FX Assistant.", "LLM FX Assistant")
 		return
@@ -71,17 +71,17 @@ func handleFXAssistant() {
 	// STEP 3: Get FX list
 	fxList, err := reaper.GetTrackFXList(trackInfo.MediaTrack)
 	if err != nil {
-		core.LogError("Error getting FX list: %v", err)
+		logger.Error("Error getting FX list: %v", err)
 		reaper.MessageBox(fmt.Sprintf("Error: %v", err), "LLM FX Assistant")
 		return
 	}
 
-	core.LogInfo("Found %d FX on track.", len(fxList))
+	logger.Info("Found %d FX on track.", len(fxList))
 
 	// STEP 4: Show FX selection dialog
 	fxOptions := buildFXSelectionList(fxList)
 
-	core.LogInfo("FX options: %s", fxOptions)
+	logger.Info("FX options: %s", fxOptions)
 
 	fields := []string{
 		"FX to adjust (comma-separated numbers)",
@@ -95,34 +95,34 @@ func handleFXAssistant() {
 
 	results, err := reaper.GetUserInputs("LLM FX Assistant", fields, defaults)
 	if err != nil {
-		core.LogInfo("User cancelled the dialog")
+		logger.Info("User cancelled the dialog")
 		return
 	}
 
 	// STEP 5: Parse user inputs
 	selectedFXIndices, err := parseFXSelection(results[0], len(fxList))
 	if err != nil {
-		core.LogInfo("Invalid FX selection: %v", err)
+		logger.Info("Invalid FX selection: %v", err)
 		reaper.MessageBox(fmt.Sprintf("Invalid FX selection: %v", err), "LLM FX Assistant")
 		return
 	}
 
 	userPrompt := results[1]
 	if userPrompt == "" {
-		core.LogDebug("Empty prompt provided")
+		logger.Debug("Empty prompt provided")
 		reaper.MessageBox("Please provide a request for the LLM FX Assistant.", "LLM FX Assistant")
 		return
 	}
 
-	core.LogInfo("Selected FX indices: %v", selectedFXIndices)
-	core.LogInfo("User prompt: %s", userPrompt)
+	logger.Info("Selected FX indices: %v", selectedFXIndices)
+	logger.Info("User prompt: %s", userPrompt)
 
 	// STEP 6: Collect FX parameters
 	fxParameters := collectFXParameters(trackInfo.MediaTrack, selectedFXIndices, fxList)
 
 	// Show the parameters (for debugging/validation)
 	parametersText := formatFXParametersText(fxParameters)
-	core.LogInfo("Parameters collected: %s", parametersText)
+	logger.Info("Parameters collected: %s", parametersText)
 
 	// STEP 7: Confirm with user
 	confirmMsg := fmt.Sprintf("Track: %s\nFX selected: %d\nRequest: %s\n\nReady to analyze with LLM?\n\nNote: This will require an OpenAI API key.",
@@ -130,7 +130,7 @@ func handleFXAssistant() {
 
 	proceed, err := reaper.YesNoBox(confirmMsg, "LLM FX Assistant")
 	if err != nil || !proceed {
-		core.LogDebug("User chose not to proceed with LLM analysis")
+		logger.Debug("User chose not to proceed with LLM analysis")
 		return
 	}
 
@@ -140,7 +140,7 @@ func handleFXAssistant() {
 
 	apiKey, err := getOpenAIKey()
 	if err != nil {
-		core.LogError("Error calling GetOpenAIKey: %v", err)
+		logger.Error("Error calling GetOpenAIKey: %v", err)
 		reaper.MessageBox(fmt.Sprintf("Error calling GetOpenAIKey: %v", err), "LLM FX Assistant")
 		return
 	}
@@ -149,35 +149,35 @@ func handleFXAssistant() {
 	systemPrompt := buildSystemPrompt()
 	userPromptText := buildUserPrompt(fxParameters, userPrompt)
 
-	core.LogInfo("System Prompt: %s", systemPrompt)
-	core.LogInfo("User Prompt: %s", userPromptText)
+	logger.Info("System Prompt: %s", systemPrompt)
+	logger.Info("User Prompt: %s", userPromptText)
 
 	// STEP 10: Inform the user
-	core.LogDebug("About to call OpenAI API")
-	core.LogDebug("Analyzing parameters with OpenAI... This might take a few seconds.")
+	logger.Debug("About to call OpenAI API")
+	logger.Debug("Analyzing parameters with OpenAI... This might take a few seconds.")
 
 	// STEP 11: Create client and make API call
 	// Here we'll use the simplest approach - just call directly
 	client := llm.NewOpenAIClient(apiKey)
 
 	// Make API call
-	core.LogDebug("Starting OpenAI API call...")
+	logger.Debug("Starting OpenAI API call...")
 	responseText, err := client.SendPrompt(systemPrompt, userPromptText)
 
 	// STEP 12: Handle API response
 	if err != nil {
-		core.LogError("Error calling LLM API: %v", err)
+		logger.Error("Error calling LLM API: %v", err)
 		reaper.MessageBox(fmt.Sprintf("Error calling LLM API: %v", err), "LLM FX Assistant")
 		return
 	}
 
-	core.LogInfo("LLM Response: %s", responseText)
+	logger.Info("LLM Response: %s", responseText)
 
 	// STEP 13: Parse the response
 	var assistantResponse *AssistantResponse
 	assistantResponse, err = parseAssistantResponse(responseText)
 	if err != nil {
-		core.LogError("Error parsing LLM response: %v", err)
+		logger.Error("Error parsing LLM response: %v", err)
 		reaper.MessageBox(fmt.Sprintf("Error parsing LLM response: %v", err), "LLM FX Assistant")
 		return
 	}
@@ -187,10 +187,10 @@ func handleFXAssistant() {
 		if assistantResponse.Reasoning != "" {
 			message := fmt.Sprintf("The LLM did not suggest any parameter changes.\n\nReason: %s",
 				assistantResponse.Reasoning)
-			core.LogInfo("No suggestions provided by LLM: %s", assistantResponse.Reasoning)
+			logger.Info("No suggestions provided by LLM: %s", assistantResponse.Reasoning)
 			reaper.MessageBox(message, "LLM FX Assistant")
 		} else {
-			core.LogInfo("No suggestions provided by LLM")
+			logger.Info("No suggestions provided by LLM")
 			reaper.MessageBox("The LLM did not suggest any parameter changes for your request. Try being more specific about what you want to achieve.",
 				"LLM FX Assistant")
 		}
@@ -203,7 +203,7 @@ func handleFXAssistant() {
 	applyMsg := fmt.Sprintf("The LLM suggests these parameter changes:\n\n%s\n\nWould you like to apply these changes?", resultsText)
 	apply, err := reaper.YesNoBox(applyMsg, "LLM FX Assistant - Apply Changes")
 	if err != nil {
-		core.LogError("Dialog error: %v", err)
+		logger.Error("Dialog error: %v", err)
 		return
 	}
 
@@ -211,15 +211,15 @@ func handleFXAssistant() {
 	if apply {
 		err = applyParameterChanges(trackInfo.MediaTrack, assistantResponse.Suggestions)
 		if err != nil {
-			core.LogError("Error applying changes: %v", err)
+			logger.Error("Error applying changes: %v", err)
 			reaper.MessageBox(fmt.Sprintf("Error applying changes: %v", err), "LLM FX Assistant")
 			return
 		}
 
-		core.LogInfo("Parameter changes applied successfully")
+		logger.Info("Parameter changes applied successfully")
 		reaper.MessageBox("Parameter changes applied successfully!", "LLM FX Assistant")
 	} else {
-		core.LogInfo("User chose not to apply changes")
+		logger.Info("User chose not to apply changes")
 	}
 }
 
@@ -285,24 +285,24 @@ func parseAssistantResponse(responseText string) (*AssistantResponse, error) {
 		return nil, fmt.Errorf("empty response text from LLM")
 	}
 
-	core.LogInfo("Parsing response text (%d chars)...", len(responseText))
+	logger.Info("Parsing response text (%d chars)...", len(responseText))
 
 	// Try to extract JSON from the response (it might contain additional text)
 	jsonStart := strings.Index(responseText, "{")
 	jsonEnd := strings.LastIndex(responseText, "}")
 
 	if jsonStart == -1 || jsonEnd == -1 || jsonEnd < jsonStart {
-		core.LogError("Failed to find valid JSON markers in response: %s", responseText)
+		logger.Error("Failed to find valid JSON markers in response: %s", responseText)
 		return nil, fmt.Errorf("could not find valid JSON in response")
 	}
 
 	jsonStr := responseText[jsonStart : jsonEnd+1]
-	core.LogInfo("Extracted JSON (%d chars)", len(jsonStr))
+	logger.Info("Extracted JSON (%d chars)", len(jsonStr))
 
 	// Parse the JSON response
 	var response AssistantResponse
 	if err := json.Unmarshal([]byte(jsonStr), &response); err != nil {
-		core.LogError("JSON unmarshal error: %v", err)
+		logger.Error("JSON unmarshal error: %v", err)
 		return nil, fmt.Errorf("failed to parse LLM response: %v", err)
 	}
 
@@ -315,13 +315,13 @@ func parseAssistantResponse(responseText string) (*AssistantResponse, error) {
 	for i, suggestion := range response.Suggestions {
 		// Validate FX index is present
 		if suggestion.FXIndex < 0 {
-			core.LogWarning("Warning: Invalid FX index %d, using 0", suggestion.FXIndex)
+			logger.Warning("Warning: Invalid FX index %d, using 0", suggestion.FXIndex)
 			response.Suggestions[i].FXIndex = 0
 		}
 
 		// Validate parameter value is in range
 		if suggestion.Value < 0 || suggestion.Value > 1 {
-			core.LogWarning("Warning: Parameter value %f outside 0-1 range, clamping", suggestion.Value)
+			logger.Warning("Warning: Parameter value %f outside 0-1 range, clamping", suggestion.Value)
 			if suggestion.Value < 0 {
 				response.Suggestions[i].Value = 0
 			} else {
@@ -330,7 +330,7 @@ func parseAssistantResponse(responseText string) (*AssistantResponse, error) {
 		}
 	}
 
-	core.LogInfo("Successfully parsed response with %d suggestions", len(response.Suggestions))
+	logger.Info("Successfully parsed response with %d suggestions", len(response.Suggestions))
 	return &response, nil
 }
 
@@ -394,7 +394,7 @@ func collectFXParameters(track unsafe.Pointer, indices []int, fxList []reaper.FX
 		// Get full FX parameters
 		fxInfo, err := reaper.GetFXParameters(track, fxIndex)
 		if err != nil {
-			core.LogError("Error getting FX parameters for %s: %v", fxList[fxIndex].Name, err)
+			logger.Error("Error getting FX parameters for %s: %v", fxList[fxIndex].Name, err)
 			continue
 		}
 
@@ -465,7 +465,7 @@ func applyParameterChanges(track unsafe.Pointer, suggestions []ParameterSuggesti
 		}
 
 		// Log the change
-		core.LogInfo("Applied: FX %d, Parameter %d (%s): %.4f - %s",
+		logger.Info("Applied: FX %d, Parameter %d (%s): %.4f - %s",
 			suggestion.FXIndex,
 			suggestion.ParamIndex,
 			suggestion.ParamName,

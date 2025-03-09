@@ -2,7 +2,7 @@ package actions
 
 import (
 	"fmt"
-	"go-reaper/core"
+	"go-reaper/pkg/logger"
 	"go-reaper/reaper"
 	"runtime"
 	"unsafe"
@@ -34,7 +34,7 @@ func go_process_keyring_key(keyValue *C.char) {
 	key := C.GoString(keyValue)
 
 	// Log the key length (for debugging)
-	core.LogDebug("Processing key for keyring (length: %d)", len(key))
+	logger.Debug("Processing key for keyring (length: %d)", len(key))
 
 	var message string
 	var success bool
@@ -42,12 +42,12 @@ func go_process_keyring_key(keyValue *C.char) {
 	// Save to keyring
 	err := keyring.Set(KeyringServiceName, KeyringKeyName, key)
 	if err != nil {
-		core.LogError("Failed to save key to keyring: %v", err)
+		logger.Error("Failed to save key to keyring: %v", err)
 		message = fmt.Sprintf("Error saving to keyring: %v", err)
 		success = false
 	} else {
 		message = "Success! You've added the key to the keyring!"
-		core.LogInfo("Key saved to keyring successfully")
+		logger.Info("Key saved to keyring successfully")
 		success = true
 	}
 
@@ -57,15 +57,15 @@ func go_process_keyring_key(keyValue *C.char) {
 
 // RegisterKeyringTest registers the keyring test action
 func RegisterKeyringTest() error {
-	core.LogInfo("Registering Keyring Test action")
+	logger.Info("Registering Keyring Test action")
 
 	actionID, err := reaper.RegisterMainAction("GO_KEYRING_TEST", "Go: Keyring Test")
 	if err != nil {
-		core.LogError("Failed to register keyring test action: %v", err)
+		logger.Error("Failed to register keyring test action: %v", err)
 		return fmt.Errorf("failed to register keyring test action: %v", err)
 	}
 
-	core.LogInfo("Keyring Test action registered with ID: %d", actionID)
+	logger.Info("Keyring Test action registered with ID: %d", actionID)
 
 	reaper.SetActionHandler("GO_KEYRING_TEST", handleKeyringTest)
 	return nil
@@ -80,7 +80,7 @@ func handleKeyringTest() {
 	}
 
 	// Log action triggered
-	core.LogInfo("Keyring Test action triggered")
+	logger.Info("Keyring Test action triggered")
 
 	// Lock the current goroutine to the OS thread
 	runtime.LockOSThread()
@@ -93,10 +93,10 @@ func handleKeyringTest() {
 	var message string
 	if keyExists {
 		message = "Success! The key is in the keyring."
-		core.LogInfo("API key found in keyring")
+		logger.Info("API key found in keyring")
 	} else {
 		message = "No key found. Please enter your API key."
-		core.LogInfo("No API key found in keyring")
+		logger.Info("No API key found in keyring")
 	}
 
 	// Show the keyring window
@@ -109,13 +109,13 @@ func handleKeyringTest() {
 	result := C.kr_show_window(title, C.bool(keyExists), cMessage)
 
 	if bool(result) {
-		core.LogInfo("Keyring window created/shown successfully")
+		logger.Info("Keyring window created/shown successfully")
 	} else {
-		core.LogError("Failed to create/show keyring window")
+		logger.Error("Failed to create/show keyring window")
 		reaper.MessageBox("Failed to create/show keyring window. See log for details.", "Keyring Test")
 	}
 
-	core.LogInfo("Keyring Test action handler completed")
+	logger.Info("Keyring Test action handler completed")
 }
 
 // updateMessage updates the message in the keyring window
@@ -126,20 +126,20 @@ func updateMessage(keyExists bool, message string) {
 	result := C.kr_update_message(C.bool(keyExists), cMessage)
 
 	if bool(result) {
-		core.LogInfo("Keyring message updated successfully")
+		logger.Info("Keyring message updated successfully")
 	} else {
-		core.LogError("Failed to update keyring message")
+		logger.Error("Failed to update keyring message")
 	}
 }
 
 // CloseKeyringWindow closes the keyring window if it exists
 func CloseKeyringWindow() {
 	if runtime.GOOS == "darwin" {
-		core.LogInfo("Closing keyring window...")
+		logger.Info("Closing keyring window...")
 
 		C.kr_close_window()
 
-		core.LogInfo("Keyring window close request completed")
+		logger.Info("Keyring window close request completed")
 	}
 }
 

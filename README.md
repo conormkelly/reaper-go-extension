@@ -84,7 +84,7 @@ func RegisterMyAction() error {
 
 // handleMyAction handles the action when triggered
 func handleMyAction() {
-    core.LogInfo("My action was triggered!")
+    logger.Info("My action was triggered!")
     // Add your action's functionality here
 }
 ```
@@ -330,22 +330,22 @@ For Go code, use the clean logging API in the `core` package:
 import "go-reaper/core"
 
 // Initialize logging (done in main.go)
-core.InitLogging()
+logger.Initialize()
 
 // Log at various levels - context and function names are automatically added
-core.LogError("Failed to process: %v", err)
-core.LogWarning("Configuration issue: %s", warning)
-core.LogInfo("Operation completed successfully")
-core.LogDebug("Processing item %d of %d: %s", i, total, item)
-core.LogTrace("Function called with args: %+v", args)
+logger.Error("Failed to process: %v", err)
+logger.Warning("Configuration issue: %s", warning)
+logger.Info("Operation completed successfully")
+logger.Debug("Processing item %d of %d: %s", i, total, item)
+logger.Trace("Function called with args: %+v", args)
 
 // Can configure logging programmatically
-core.SetLoggingEnabled(true)
-core.SetLogLevel(core.LogLevelDebug)
-core.SetLogPath("/custom/path/to/log.txt")
+logger.SetLoggingEnabled(true)
+logger.SetLogLevel(logger.LogLevelDebug)
+logger.SetLogPath("/custom/path/to/log.txt")
 
 // Clean up at shutdown (done in main.go)
-core.CleanupLogging()
+logger.Cleanup()
 ```
 
 #### C/C++ Code

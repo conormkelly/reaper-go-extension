@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"go-reaper/core"
+	"go-reaper/pkg/logger"
 	"io"
 	"net/http"
 	"time"
@@ -57,7 +57,7 @@ func NewOpenAIClient(apiKey string) *OpenAIClient {
 // SendPrompt implements the Client interface
 func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, error) {
 	// Log the start of the API call
-	core.LogDebug("Starting OpenAI API call...")
+	logger.Debug("Starting OpenAI API call...")
 
 	// Set up the request body
 	type RequestBody struct {
@@ -82,7 +82,7 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 		return "", fmt.Errorf("error marshaling request body: %v", err)
 	}
 
-	core.LogDebug("Request body prepared, creating HTTP request...")
+	logger.Debug("Request body prepared, creating HTTP request...")
 
 	// Create the request
 	req, err := http.NewRequest("POST", OpenAICompletionURL, bytes.NewBuffer(jsonData))
@@ -94,7 +94,7 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
 
-	core.LogDebug("Sending HTTP request to OpenAI API...")
+	logger.Debug("Sending HTTP request to OpenAI API...")
 
 	// Send the request
 	resp, err := c.HTTPClient.Do(req)
@@ -107,7 +107,7 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 	}
 	defer resp.Body.Close()
 
-	core.LogDebug("Received response with status: %d", resp.StatusCode)
+	logger.Debug("Received response with status: %d", resp.StatusCode)
 
 	// Read the response
 	body, err := io.ReadAll(resp.Body)
@@ -117,11 +117,11 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
-		core.LogError("API error response: %s", string(body))
+		logger.Error("API error response: %s", string(body))
 		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	core.LogDebug("Successfully read response body (%d bytes)", len(body))
+	logger.Debug("Successfully read response body (%d bytes)", len(body))
 
 	// Parse the response
 	var openAIResp struct {
@@ -136,8 +136,8 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 	}
 
 	if err := json.Unmarshal(body, &openAIResp); err != nil {
-		core.LogError("Error parsing response: %v", err)
-		core.LogError("Response content: %s", string(body))
+		logger.Error("Error parsing response: %v", err)
+		logger.Error("Response content: %s", string(body))
 		return "", fmt.Errorf("error parsing API response: %v", err)
 	}
 
@@ -157,6 +157,6 @@ func (c *OpenAIClient) SendPrompt(systemPrompt, userPrompt string) (string, erro
 		return "", fmt.Errorf("empty content in API response")
 	}
 
-	core.LogDebug("Successfully parsed OpenAI response")
+	logger.Debug("Successfully parsed OpenAI response")
 	return content, nil
 }

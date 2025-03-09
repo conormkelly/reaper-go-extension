@@ -13,15 +13,15 @@ import (
 // ListAvailableFunctions checks if specific REAPER functions exist and logs the results
 func ListAvailableFunctions(functionNames []string) {
 	if !initialized {
-		// core.LogError("REAPER functions not initialized")
+		// logger.Error("REAPER functions not initialized")
 		return
 	}
 
-	// core.LogDebug("Checking for available functions:")
+	// logger.Debug("Checking for available functions:")
 
 	getFuncPtr := C.plugin_bridge_get_get_func()
 	if getFuncPtr == nil {
-		// core.LogError("Error: GetFunc function pointer is nil")
+		// logger.Error("Error: GetFunc function pointer is nil")
 		return
 	}
 
@@ -31,9 +31,9 @@ func ListAvailableFunctions(functionNames []string) {
 		C.free(unsafe.Pointer(cFuncName))
 
 		if funcPtr != nil {
-			// core.LogDebug("- %s: Available", name)
+			// logger.Debug("- %s: Available", name)
 		} else {
-			// core.LogWarning("- %s: Not found", name)
+			// logger.Warning("- %s: Not found", name)
 		}
 	}
 }

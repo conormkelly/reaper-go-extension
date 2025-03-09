@@ -55,7 +55,7 @@ func goHookCommandProc(commandId C.int, flag C.int) C.int {
 	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
 			// Log that the command was triggered
-			// core.LogInfo("GoReaper action triggered! Command ID: %d (%s)", int(commandId), actionID)
+			// logger.Info("GoReaper action triggered! Command ID: %d (%s)", int(commandId), actionID)
 
 			// Check if we have a handler for this action
 			mutex.RLock()
@@ -86,7 +86,7 @@ func goHookCommandProc2(section unsafe.Pointer, commandId C.int, val C.int, valh
 	for actionID, cmdID := range registeredCommands {
 		if int(commandId) == cmdID {
 			// Command was triggered - log it to console
-			// core.LogInfo("GoReaper action triggered! Command ID: %d (%s) (via hookcommand2)", int(commandId), actionID)
+			// logger.Info("GoReaper action triggered! Command ID: %d (%s) (via hookcommand2)", int(commandId), actionID)
 
 			// Check if we have a handler for this action
 			mutex.RLock()
@@ -151,8 +151,8 @@ func RegisterCustomAction(actionID string, description string, sectionID int) (i
 
 	mutex.Unlock()
 
-	// core.LogInfo("Registered custom action: %s (%s) in section %d", actionID, description, sectionID)
-	// core.LogInfo("Command ID result: %d, Custom action result: %d", cmdID, int(caResult))
+	// logger.Info("Registered custom action: %s (%s) in section %d", actionID, description, sectionID)
+	// logger.Info("Command ID result: %d, Custom action result: %d", cmdID, int(caResult))
 
 	return cmdID, nil
 }
