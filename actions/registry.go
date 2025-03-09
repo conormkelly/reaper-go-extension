@@ -17,6 +17,10 @@ func RegisterAll() error {
 		return err
 	}
 
+	if err := RegisterKeyringTest(); err != nil {
+		return err
+	}
+
 	// Register other actions here as they are implemented
 
 	reaper.ConsoleLog("----------------------------------------------------------")

@@ -323,13 +323,11 @@ func RegisterNativeWindow() error {
 
 	actionID, err := reaper.RegisterMainAction("GO_NATIVE_WINDOW", "Go: Native Window Demo")
 	if err != nil {
-		core.LogError(fmt.Sprintf("Failed to register native window action: %v", err))
+		core.LogError("Failed to register native window action: %v", err)
 		return fmt.Errorf("failed to register native window action: %v", err)
 	}
 
-	logMsg := fmt.Sprintf("Native Window action registered with ID: %d", actionID)
-	reaper.ConsoleLog(logMsg)
-	core.LogInfo(logMsg)
+	core.LogInfo("Native Window action registered with ID: %d", actionID)
 
 	reaper.SetActionHandler("GO_NATIVE_WINDOW", handleNativeWindow)
 	return nil
@@ -338,7 +336,6 @@ func RegisterNativeWindow() error {
 // handleNativeWindow shows a native window with controls
 func handleNativeWindow() {
 	// Log action triggered
-	reaper.ConsoleLog("Native Window action triggered!")
 	core.LogInfo("Native Window action triggered!")
 
 	// Ensure we're running on macOS
@@ -351,27 +348,21 @@ func handleNativeWindow() {
 	isMainThread := bool(C.is_main_thread())
 	threadState := C.GoString(C.get_thread_state())
 
-	reaper.ConsoleLog(fmt.Sprintf("Thread state: %s", threadState))
-	reaper.ConsoleLog(fmt.Sprintf("Is main thread: %v", isMainThread))
-
-	core.LogInfo(fmt.Sprintf("Thread state: %s", threadState))
-	core.LogInfo(fmt.Sprintf("Is main thread: %v", isMainThread))
+	core.LogInfo("Thread state: %s", threadState)
+	core.LogInfo("Is main thread: %v", isMainThread)
 
 	// Show the native window
 	title := C.CString("REAPER Go Extension")
 	defer C.free(unsafe.Pointer(title))
 
-	reaper.ConsoleLog("About to show native window...")
 	core.LogInfo("About to show native window...")
 
 	// Show the window with proper thread handling
 	result := C.show_native_window(title)
 
 	if bool(result) {
-		reaper.ConsoleLog("Window created/shown successfully")
 		core.LogInfo("Window created/shown successfully")
 	} else {
-		reaper.ConsoleLog("Failed to create/show window")
 		core.LogError("Failed to create/show window")
 		reaper.MessageBox("Failed to create/show native window. See log for details.", "Native Window Demo")
 	}
@@ -379,19 +370,16 @@ func handleNativeWindow() {
 	// Keep the action handler alive briefly to ensure UI operations complete
 	time.Sleep(100 * time.Millisecond)
 
-	reaper.ConsoleLog("Native Window action handler completed")
 	core.LogInfo("Native Window action handler completed")
 }
 
 // CloseNativeWindow closes the native window if it exists
 func CloseNativeWindow() {
 	if runtime.GOOS == "darwin" {
-		reaper.ConsoleLog("Closing native window...")
 		core.LogInfo("Closing native window...")
 
 		C.close_native_window()
 
-		reaper.ConsoleLog("Native window close request completed")
 		core.LogInfo("Native window close request completed")
 	}
 }

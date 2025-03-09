@@ -42,11 +42,18 @@ $(BUILD_DIR)/reaper_plugin_bridge.o: $(SRC_DIR)/reaper_plugin_bridge.c $(SRC_DIR
 $(BUILD_DIR)/reaper_ext_logging.o: $(SRC_DIR)/reaper_ext_logging.c $(SRC_DIR)/reaper_ext_logging.h
 	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/reaper_ext_logging.c -o $(BUILD_DIR)/reaper_ext_logging.o
 
-# Link everything together
-$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o
+# Compile the keyring bridge code (for macOS only)
 ifeq ($(GOOS),darwin)
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
+$(BUILD_DIR)/krbridge.o: $(SRC_DIR)/actions/krbridge.m $(SRC_DIR)/actions/krbridge.h
+	gcc -c -x objective-c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/actions/krbridge.m -o $(BUILD_DIR)/krbridge.o
+endif
+
+# Link everything together
+ifeq ($(GOOS),darwin)
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/krbridge.o
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
 else
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o
 	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/reaper_plugin_bridge.o $(BUILD_DIR)/reaper_ext_logging.o $(BUILD_DIR)/libgo_reaper.a -lpthread
 endif
 

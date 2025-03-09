@@ -16,6 +16,10 @@ import (
 func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
 	// If rec is null, REAPER is unloading the plugin
 	if rec == nil {
+		// Close any open UI windows
+		actions.CloseNativeWindow()
+		actions.CloseKeyringWindow()
+
 		// Perform cleanup tasks including logging shutdown
 		core.CleanupLogging()
 		return 0
