@@ -13,7 +13,9 @@ else ifeq ($(GOOS),darwin)
   EXT=.dylib
   INSTALL_PATH="$(HOME)/Library/Application Support/REAPER/UserPlugins/"
   # Add macOS specific flags
-  MACOS_LDFLAGS=-framework CoreFoundation -framework Security
+    MACOS_LDFLAGS=-framework CoreFoundation \
+                -framework Security \
+                -framework Cocoa
 else
   EXT=.so
   INSTALL_PATH="$(HOME)/.config/REAPER/UserPlugins/"
