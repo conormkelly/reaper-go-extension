@@ -273,6 +273,97 @@ When adding new REAPER API support:
 
 - Study the REAPER SDK headers and SWS extension code for reference
 
+## Logging System
+
+The REAPER Go Extension includes a flexible logging system that can be used for debugging and diagnostic purposes.
+
+### Configuration Options
+
+#### Environment Variables
+
+The logging system can be configured using the following environment variables:
+
+- `REAPER_GO_LOG_ENABLED`: Set to `1`, `true`, or `yes` to enable logging
+- `REAPER_GO_LOG_LEVEL`: Set to `error`, `warning`, `info`, `debug`, or `trace` to control verbosity
+- `REAPER_GO_LOG_PATH`: Set to a custom file path for the log file
+
+#### Starting REAPER with Logging Enabled
+
+Example command to start REAPER with logging enabled:
+
+```bash
+# On macOS:
+REAPER_GO_LOG_ENABLED=1 REAPER_GO_LOG_LEVEL=debug REAPER_GO_LOG_PATH="/path/to/reaper-ext.log" /Applications/REAPER.app/Contents/MacOS/REAPER
+
+# On Windows (PowerShell):
+$env:REAPER_GO_LOG_ENABLED=1; $env:REAPER_GO_LOG_LEVEL="debug"; $env:REAPER_GO_LOG_PATH="C:\path\to\reaper-ext.log"; & 'C:\Program Files\REAPER\reaper.exe'
+
+# On Linux:
+REAPER_GO_LOG_ENABLED=1 REAPER_GO_LOG_LEVEL=debug REAPER_GO_LOG_PATH="/path/to/reaper-ext.log" reaper
+```
+
+#### Default Log Locations
+
+If no custom path is specified, logs are stored in:
+
+- **Windows**: `%USERPROFILE%\AppData\Roaming\REAPER\go_ext.log`
+- **macOS**: `~/Library/Application Support/REAPER/go_ext.log`
+- **Linux**: `~/.config/REAPER/go_ext.log`
+
+#### Log Levels
+
+The logging system supports 5 levels of verbosity:
+
+1. **ERROR**: Critical errors that prevent operation
+2. **WARNING**: Issues that might affect operation but don't prevent it
+3. **INFO**: General operational information (default)
+4. **DEBUG**: Detailed information useful for debugging
+5. **TRACE**: Very detailed tracing information including function entry/exit
+
+### Developer Usage
+
+#### Go Code
+
+For Go code, use the clean logging API in the `core` package:
+
+```go
+import "go-reaper/core"
+
+// Initialize logging (done in main.go)
+core.InitLogging()
+
+// Log at various levels - context and function names are automatically added
+core.LogError("Failed to process: %v", err)
+core.LogWarning("Configuration issue: %s", warning)
+core.LogInfo("Operation completed successfully")
+core.LogDebug("Processing item %d of %d: %s", i, total, item)
+core.LogTrace("Function called with args: %+v", args)
+
+// Can configure logging programmatically
+core.SetLoggingEnabled(true)
+core.SetLogLevel(core.LogLevelDebug)
+core.SetLogPath("/custom/path/to/log.txt")
+
+// Clean up at shutdown (done in main.go)
+core.CleanupLogging()
+```
+
+#### C/C++ Code
+
+For C/C++ code, use the provided logging macros:
+
+```c
+// These macros automatically include function names and only format strings
+// when the appropriate log level is enabled
+LOG_ERROR("Critical error: %s", error_message);
+LOG_WARNING("Warning: %s", warning_message);
+LOG_INFO("Operation completed: %s", result);
+LOG_DEBUG("Internal state: %s = %d", var_name, var_value);
+LOG_TRACE("Entering function with args: %s", args);
+```
+
+These macros perform level checking before calling the log function, which prevents performance issues.
+
 ## Acknowledgments
 
 This project wouldn't be possible without:

@@ -6,7 +6,6 @@ package main
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 
 	"go-reaper/actions"
@@ -15,27 +14,29 @@ import (
 
 //export GoReaperPluginEntry
 func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
-	fmt.Println("Go REAPER plugin entry called")
-
 	// If rec is null, REAPER is unloading the plugin
 	if rec == nil {
-		fmt.Println("Go plugin unloading")
+		// Perform cleanup tasks including logging shutdown
+		core.CleanupLogging()
 		return 0
 	}
 
+	// Initialize logging system
+	core.InitLogging()
+
 	// Initialize core functionality
 	if err := core.Initialize(hInstance, rec); err != nil {
-		fmt.Printf("Failed to initialize REAPER: %v\n", err)
+		core.LogError("Failed to initialize REAPER: %s", err.Error())
 		return 0
 	}
 
 	// Register all actions
 	if err := actions.RegisterAll(); err != nil {
-		fmt.Printf("Failed to register actions: %v\n", err)
+		core.LogError("Failed to register actions: %s", err.Error())
 		return 0
 	}
 
-	fmt.Println("Go plugin loaded successfully!")
+	core.LogInfo("Go plugin loaded successfully!")
 	return 1
 }
 
