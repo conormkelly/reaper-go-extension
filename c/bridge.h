@@ -57,6 +57,20 @@ typedef struct {
 bool plugin_bridge_batch_get_fx_parameters(void* track, int fx_idx, fx_param_t* params, 
                                         int max_params, int* out_param_count);
 
+
+// GetExtState
+const char* plugin_bridge_call_get_ext_state(void* func_ptr, const char* section, const char* key);
+
+// SetExtState
+void plugin_bridge_call_set_ext_state(void* func_ptr, const char* section, const char* key, 
+                                    const char* value, int persist);
+
+// HasExtState
+bool plugin_bridge_call_has_ext_state(void* func_ptr, const char* section, const char* key);
+
+// DeleteExtState
+void plugin_bridge_call_delete_ext_state(void* func_ptr, const char* section, const char* key);
+
 // Forward declaration of the Go functions
 
 // GoReaperPluginEntry is the entry point called by REAPER. This function bridges between 

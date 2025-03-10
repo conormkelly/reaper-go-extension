@@ -1,0 +1,139 @@
+diff --git a/c/bridge.c b/c/bridge.c
+index 19091f27..7938ef28 100644
+--- a/c/bridge.c
++++ b/c/bridge.c
+@@ -486,6 +486,109 @@ bool plugin_bridge_batch_get_fx_parameters(void* track, int fx_idx, fx_param_t*
+     return true;
+ }
+ 
++/**
++ * Function to get extended state
++ */
++const char* plugin_bridge_call_get_ext_state(void* func_ptr, const char* section, const char* key) {
++    LOG_DEBUG("Called with func_ptr=%p, section=%s, key=%s", 
++              func_ptr, section ? section : "NULL", key ? key : "NULL");
++    
++    // Verify input parameters
++    if (!func_ptr || !section || !key) {
++        LOG_ERROR("Invalid parameters: func_ptr=%p, section=%p, key=%p", 
++                 func_ptr, section, key);
++        return NULL;
++    }
++    
++    // Cast function pointer to correct type
++    const char* (*get_ext_state)(const char*, const char*) = 
++        (const char* (*)(const char*, const char*))func_ptr;
++    
++    // Call GetExtState
++    LOG_DEBUG("Calling GetExtState with section=%s, key=%s", section, key);
++    const char* result = get_ext_state(section, key);
++    LOG_DEBUG("GetExtState call completed with result: %s", result ? result : "NULL");
++    
++    return result;
++}
++
++/**
++ * Function to set extended state
++ */
++void plugin_bridge_call_set_ext_state(void* func_ptr, const char* section, const char* key, 
++                                     const char* value, int persist) {
++    LOG_DEBUG("Called with func_ptr=%p, section=%s, key=%s, value=%s, persist=%d", 
++              func_ptr, section ? section : "NULL", key ? key : "NULL", 
++              value ? value : "NULL", persist);
++    
++    // Verify input parameters
++    if (!func_ptr || !section || !key || !value) {
++        LOG_ERROR("Invalid parameters: func_ptr=%p, section=%p, key=%p, value=%p", 
++                 func_ptr, section, key, value);
++        return;
++    }
++    
++    // Cast function pointer to correct type
++    void (*set_ext_state)(const char*, const char*, const char*, int) = 
++        (void (*)(const char*, const char*, const char*, int))func_ptr;
++    
++    // Call SetExtState
++    LOG_DEBUG("Calling SetExtState with section=%s, key=%s, value=%s, persist=%d", 
++             section, key, value, persist);
++    set_ext_state(section, key, value, persist);
++    LOG_DEBUG("SetExtState call completed");
++}
++
++/**
++ * Function to check if extended state exists
++ */
++bool plugin_bridge_call_has_ext_state(void* func_ptr, const char* section, const char* key) {
++    LOG_DEBUG("Called with func_ptr=%p, section=%s, key=%s", 
++              func_ptr, section ? section : "NULL", key ? key : "NULL");
++    
++    // Verify input parameters
++    if (!func_ptr || !section || !key) {
++        LOG_ERROR("Invalid parameters: func_ptr=%p, section=%p, key=%p", 
++                 func_ptr, section, key);
++        return false;
++    }
++    
++    // Cast function pointer to correct type
++    int (*has_ext_state)(const char*, const char*) = 
++        (int (*)(const char*, const char*))func_ptr;
++    
++    // Call HasExtState
++    LOG_DEBUG("Calling HasExtState with section=%s, key=%s", section, key);
++    int result = has_ext_state(section, key);
++    LOG_DEBUG("HasExtState call completed with result: %d", result);
++    
++    return result != 0;
++}
++
++/**
++ * Function to delete extended state
++ */
++void plugin_bridge_call_delete_ext_state(void* func_ptr, const char* section, const char* key) {
++    LOG_DEBUG("Called with func_ptr=%p, section=%s, key=%s", 
++              func_ptr, section ? section : "NULL", key ? key : "NULL");
++    
++    // Verify input parameters
++    if (!func_ptr || !section || !key) {
++        LOG_ERROR("Invalid parameters: func_ptr=%p, section=%p, key=%p", 
++                 func_ptr, section, key);
++        return;
++    }
++    
++    // Cast function pointer to correct type
++    void (*delete_ext_state)(const char*, const char*) = 
++        (void (*)(const char*, const char*))func_ptr;
++    
++    // Call DeleteExtState
++    LOG_DEBUG("Calling DeleteExtState with section=%s, key=%s", section, key);
++    delete_ext_state(section, key);
++    LOG_DEBUG("DeleteExtState call completed");
++}
++
+ // Global storage for REAPER's GetFunc pointer
+ // This is a central lookup mechanism for all REAPER API functions
+ // It's accessed from multiple functions but is set only once during initialization
+diff --git a/c/bridge.h b/c/bridge.h
+index a6df252c..8f5a4365 100644
+--- a/c/bridge.h
++++ b/c/bridge.h
+@@ -57,6 +57,20 @@ typedef struct {
+ bool plugin_bridge_batch_get_fx_parameters(void* track, int fx_idx, fx_param_t* params, 
+                                         int max_params, int* out_param_count);
+ 
++
++// GetExtState
++const char* plugin_bridge_call_get_ext_state(void* func_ptr, const char* section, const char* key);
++
++// SetExtState
++void plugin_bridge_call_set_ext_state(void* func_ptr, const char* section, const char* key, 
++                                    const char* value, int persist);
++
++// HasExtState
++bool plugin_bridge_call_has_ext_state(void* func_ptr, const char* section, const char* key);
++
++// DeleteExtState
++void plugin_bridge_call_delete_ext_state(void* func_ptr, const char* section, const char* key);
++
+ // Forward declaration of the Go functions
+ 
+ // GoReaperPluginEntry is the entry point called by REAPER. This function bridges between 
