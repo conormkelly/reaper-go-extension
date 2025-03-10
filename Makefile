@@ -47,12 +47,16 @@ $(BUILD_DIR)/logging.o: $(SRC_DIR)/c/logging.c $(SRC_DIR)/c/logging.h
 ifeq ($(GOOS),darwin)
 $(BUILD_DIR)/krbridge.o: $(SRC_DIR)/actions/krbridge.m $(SRC_DIR)/actions/krbridge.h
 	gcc -c -x objective-c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/actions/krbridge.m -o $(BUILD_DIR)/krbridge.o
+
+# Compile the macOS UI implementation
+$(BUILD_DIR)/macos_ui.o: $(SRC_DIR)/ui/platform/macos/ui.m
+	gcc -c -x objective-c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/ui/platform/macos/ui.m -o $(BUILD_DIR)/macos_ui.o
 endif
 
 # Link everything together
 ifeq ($(GOOS),darwin)
-$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/macos_ui.o
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/macos_ui.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
 else
 $(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o
 	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/libgo_reaper.a -lpthread

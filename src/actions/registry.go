@@ -19,7 +19,13 @@ func RegisterAll() error {
 		return err
 	}
 
+	// Register Keyring test
 	if err := RegisterKeyringTest(); err != nil {
+		return err
+	}
+
+	// Register UI Sandbox action
+	if err := RegisterUISandbox(); err != nil {
 		return err
 	}
 
