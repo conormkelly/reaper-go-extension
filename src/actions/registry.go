@@ -34,6 +34,11 @@ func RegisterAll() error {
 		return err
 	}
 
+	// Register Param Format demo action
+	if err := RegisterParamFormatDemo(); err != nil {
+		return err
+	}
+
 	// Register other actions here as they are implemented
 
 	logger.Debug("----------------------------------------------------------")

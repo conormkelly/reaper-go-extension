@@ -53,6 +53,21 @@ void plugin_bridge_call_undo_end_block(void* func_ptr, const char* description, 
 // REAPER's Undo_EndBlock2 function (with project parameter)
 void plugin_bridge_call_undo_end_block2(void* func_ptr, void* proj, const char* description, int flags);
 
+// REAPER's TrackFX_FormatParamValue function
+// Formats a parameter value without changing the actual parameter
+void plugin_bridge_call_track_fx_format_param_value(void* func_ptr, void* track, int fx_idx, int param_idx, double value, char* buf, int buf_size);
+
+// Structure for batch parameter formatting
+typedef struct {
+    int fx_index;
+    int param_index;
+    double value;
+    char formatted[256];
+} fx_param_format_t;
+
+// Function to format multiple parameter values in a single call
+bool plugin_bridge_batch_format_fx_parameters(void* track, fx_param_format_t* params, int param_count);
+
 void plugin_bridge_set_get_func(void* get_func_ptr);
 void* plugin_bridge_get_get_func();
 

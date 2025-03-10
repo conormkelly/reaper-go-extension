@@ -663,6 +663,88 @@ void plugin_bridge_call_undo_end_block2(void* func_ptr, void* proj, const char* 
     LOG_DEBUG("Undo_EndBlock2 call completed");
 }
 
+/**
+ * REAPER's TrackFX_FormatParamValue function - formats a value without changing the parameter
+ */
+void plugin_bridge_call_track_fx_format_param_value(void* func_ptr, void* track, int fx_idx, int param_idx, double value, char* buf, int buf_size) {
+    LOG_DEBUG("Called with func_ptr=%p, track=%p, fx_idx=%d, param_idx=%d, value=%f, buf=%p, buf_size=%d",
+              func_ptr, track, fx_idx, param_idx, value, buf, buf_size);
+    
+    // Verify input pointers aren't NULL
+    if (!func_ptr || !track || !buf || buf_size <= 0) {
+        LOG_ERROR("Invalid parameters: func_ptr=%p, track=%p, buf=%p, buf_size=%d",
+                  func_ptr, track, buf, buf_size);
+        // If buffer is valid, make it an empty string for safety
+        if (buf && buf_size > 0) {
+            buf[0] = '\0';
+            LOG_DEBUG("Buffer set to empty string for safety");
+        }
+        return;
+    }
+    
+    void (*track_fx_format_param_value)(void*, int, int, double, char*, int) =
+        (void (*)(void*, int, int, double, char*, int))func_ptr;
+    
+    LOG_DEBUG("Calling TrackFX_FormatParamValue with track=%p, fx_idx=%d, param_idx=%d, value=%f",
+              track, fx_idx, param_idx, value);
+    track_fx_format_param_value(track, fx_idx, param_idx, value, buf, buf_size);
+    LOG_DEBUG("TrackFX_FormatParamValue call completed with result: %s", buf);
+}
+
+/**
+ * Function to batch format parameter values in a single call
+ * This reduces the number of C-Go crossings dramatically
+ */
+bool plugin_bridge_batch_format_fx_parameters(void* track, fx_param_format_t* params, int param_count) {
+    LOG_DEBUG("Called with track=%p, params=%p, param_count=%d",
+              track, params, param_count);
+    
+    // Verify input pointers
+    if (!track || !params || param_count <= 0) {
+        LOG_ERROR("Invalid parameters: track=%p, params=%p, param_count=%d",
+                 track, params, param_count);
+        return false;
+    }
+    
+    // Get the GetFunc function using our bridge
+    void* getFuncPtr = plugin_bridge_get_get_func();
+    if (!getFuncPtr) {
+        LOG_ERROR("Failed to get GetFunc pointer");
+        return false;
+    }
+    
+    // Get the TrackFX_FormatParamValue function
+    void* formatValueFunc = NULL;
+    {
+        char funcName[64] = "TrackFX_FormatParamValue";
+        formatValueFunc = plugin_bridge_call_get_func(getFuncPtr, funcName);
+        if (!formatValueFunc) {
+            LOG_ERROR("Failed to get TrackFX_FormatParamValue function pointer");
+            return false;
+        }
+    }
+    
+    // Format all parameter values
+    for (int i = 0; i < param_count; i++) {
+        // Format the parameter value
+        plugin_bridge_call_track_fx_format_param_value(
+            formatValueFunc,
+            track,
+            params[i].fx_index,
+            params[i].param_index,
+            params[i].value,
+            params[i].formatted,
+            sizeof(params[i].formatted)
+        );
+        
+        LOG_DEBUG("Parameter %d: fx_index=%d, param_index=%d, value=%f, formatted=%s",
+                 i, params[i].fx_index, params[i].param_index, params[i].value, params[i].formatted);
+    }
+    
+    LOG_DEBUG("Successfully formatted %d parameters", param_count);
+    return true;
+}
+
 // Global storage for REAPER's GetFunc pointer
 // This is a central lookup mechanism for all REAPER API functions
 // It's accessed from multiple functions but is set only once during initialization

@@ -9,6 +9,7 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
+	"go-reaper/src/pkg/logger"
 	"unsafe"
 )
 
@@ -364,4 +365,174 @@ func BatchGetFXParameters(track unsafe.Pointer, fxIndex int) ([]FXParameter, err
 	}
 
 	return parameters, nil
+}
+
+// GetTrackFXParamFormattedValueWithValue gets the formatted string for a specific parameter value
+// This is useful to get the formatted display of a value without actually changing the parameter
+func GetTrackFXParamFormattedValueWithValue(track unsafe.Pointer, fxIndex int, paramIndex int, value float64) (string, error) {
+	if !initialized {
+		return "", fmt.Errorf("REAPER functions not initialized")
+	}
+
+	cFuncName := C.CString("TrackFX_FormatParamValue")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		return "", fmt.Errorf("could not get TrackFX_FormatParamValue function pointer")
+	}
+
+	// Allocate buffer for the formatted value
+	buf := (*C.char)(C.malloc(C.size_t(256)))
+	defer C.free(unsafe.Pointer(buf))
+
+	C.plugin_bridge_call_track_fx_format_param_value(
+		getFuncPtr,
+		track,
+		C.int(fxIndex),
+		C.int(paramIndex),
+		C.double(value),
+		buf,
+		C.int(256),
+	)
+
+	return C.GoString(buf), nil
+}
+
+// ParameterFormatRequest defines a request to format a parameter value
+type ParameterFormatRequest struct {
+	FXIndex    int     // FX index
+	ParamIndex int     // Parameter index
+	Value      float64 // Value to format
+}
+
+// BatchFormatFXParameters formats multiple parameter values in a single call
+// This is much more efficient than making multiple CGo transitions
+func BatchFormatFXParameters(track unsafe.Pointer, requests []ParameterFormatRequest) ([]string, error) {
+	if !initialized {
+		return nil, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	count := len(requests)
+	if count == 0 {
+		return []string{}, nil
+	}
+
+	// Allocate memory for parameter format requests
+	paramData := (*C.fx_param_format_t)(C.malloc(C.size_t(count) * C.size_t(unsafe.Sizeof(C.fx_param_format_t{}))))
+	if paramData == nil {
+		return nil, fmt.Errorf("failed to allocate memory for parameter data")
+	}
+	defer C.free(unsafe.Pointer(paramData))
+
+	// Create a slice view of the C array
+	paramSlice := (*[1 << 30]C.fx_param_format_t)(unsafe.Pointer(paramData))[:count:count]
+
+	// Fill in the parameter data
+	for i, req := range requests {
+		paramSlice[i].fx_index = C.int(req.FXIndex)
+		paramSlice[i].param_index = C.int(req.ParamIndex)
+		paramSlice[i].value = C.double(req.Value)
+	}
+
+	// Call the batch function
+	result := C.plugin_bridge_batch_format_fx_parameters(track, paramData, C.int(count))
+	if !bool(result) {
+		return nil, fmt.Errorf("failed to format parameters")
+	}
+
+	// Extract the formatted values
+	formattedValues := make([]string, count)
+	for i := 0; i < count; i++ {
+		formattedValues[i] = C.GoString(&paramSlice[i].formatted[0])
+	}
+
+	return formattedValues, nil
+}
+
+// GetMinMaxFormatted gets the formatted min and max values for a parameter
+func GetMinMaxFormatted(track unsafe.Pointer, fxIndex, paramIndex int) (minFormatted, maxFormatted string, err error) {
+	_, min, max, err := GetTrackFXParamValueWithRange(track, fxIndex, paramIndex)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get parameter range: %v", err)
+	}
+
+	// Create format requests for min and max values
+	requests := []ParameterFormatRequest{
+		{FXIndex: fxIndex, ParamIndex: paramIndex, Value: min},
+		{FXIndex: fxIndex, ParamIndex: paramIndex, Value: max},
+	}
+
+	// Format both values in a single call
+	formatted, err := BatchFormatFXParameters(track, requests)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to format min/max values: %v", err)
+	}
+
+	if len(formatted) != 2 {
+		return "", "", fmt.Errorf("unexpected number of formatted values returned")
+	}
+
+	return formatted[0], formatted[1], nil
+}
+
+// GetFXParametersWithMinMax retrieves all parameters for a specific FX with min/max formatted values
+func GetFXParametersWithMinMax(track unsafe.Pointer, fxIndex int) (FXInfo, error) {
+	result := FXInfo{
+		Index:      fxIndex,
+		Parameters: []FXParameter{},
+	}
+
+	// Get FX name
+	fxName, err := GetTrackFXName(track, fxIndex)
+	if err != nil {
+		return result, fmt.Errorf("failed to get FX name: %v", err)
+	}
+	result.Name = fxName
+
+	// Use the batch function to get all parameters at once
+	parameters, err := BatchGetFXParameters(track, fxIndex)
+	if err != nil {
+		return result, fmt.Errorf("failed to batch get FX parameters: %v", err)
+	}
+
+	// Create batch format requests for min/max values of all parameters
+	formatRequests := make([]ParameterFormatRequest, len(parameters)*2)
+	for i, param := range parameters {
+		// Request for min value
+		formatRequests[i*2] = ParameterFormatRequest{
+			FXIndex:    fxIndex,
+			ParamIndex: param.Index,
+			Value:      param.Min,
+		}
+
+		// Request for max value
+		formatRequests[i*2+1] = ParameterFormatRequest{
+			FXIndex:    fxIndex,
+			ParamIndex: param.Index,
+			Value:      param.Max,
+		}
+	}
+
+	// Get all formatted min/max values in a single call
+	formattedValues, err := BatchFormatFXParameters(track, formatRequests)
+	if err != nil {
+		// Continue even if formatting fails
+		logger.Warning("Failed to format min/max values: %v", err)
+		result.Parameters = parameters
+		return result, nil
+	}
+
+	// Add min/max formatted values to parameters
+	enhancedParams := make([]FXParameter, len(parameters))
+	for i, param := range parameters {
+		enhancedParams[i] = param
+		if i*2+1 < len(formattedValues) {
+			enhancedParams[i].MinFormatted = formattedValues[i*2]
+			enhancedParams[i].MaxFormatted = formattedValues[i*2+1]
+		}
+	}
+
+	result.Parameters = enhancedParams
+	return result, nil
 }

@@ -8,6 +8,8 @@ type FXParameter struct {
 	FormattedValue string  `json:"formattedValue"` // Human-readable value
 	Min            float64 `json:"min"`            // Minimum value
 	Max            float64 `json:"max"`            // Maximum value
+	MinFormatted   string  `json:"minFormatted"`   // Human-readable minimum value
+	MaxFormatted   string  `json:"maxFormatted"`   // Human-readable maximum value
 }
 
 // FXInfo represents an FX and its parameters
