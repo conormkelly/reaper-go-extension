@@ -29,6 +29,11 @@ func RegisterAll() error {
 		return err
 	}
 
+	// Register Undo Test action
+	if err := RegisterUndoDemo(); err != nil {
+		return err
+	}
+
 	// Register other actions here as they are implemented
 
 	logger.Debug("----------------------------------------------------------")

@@ -41,6 +41,18 @@ bool plugin_bridge_call_get_user_inputs(void* func_ptr, const char* title, int n
 // ShowMessageBox - Standard message box
 int plugin_bridge_call_show_message_box(void* func_ptr, const char* text, const char* title, int type);
 
+// REAPER's Undo_BeginBlock function
+void plugin_bridge_call_undo_begin_block(void* func_ptr);
+
+// REAPER's Undo_BeginBlock2 function (with project parameter)
+void plugin_bridge_call_undo_begin_block2(void* func_ptr, void* proj);
+
+// REAPER's Undo_EndBlock function
+void plugin_bridge_call_undo_end_block(void* func_ptr, const char* description, int flags);
+
+// REAPER's Undo_EndBlock2 function (with project parameter)
+void plugin_bridge_call_undo_end_block2(void* func_ptr, void* proj, const char* description, int flags);
+
 void plugin_bridge_set_get_func(void* get_func_ptr);
 void* plugin_bridge_get_get_func();
 
