@@ -365,6 +365,127 @@ int plugin_bridge_call_show_message_box(void* func_ptr, const char* text, const 
     return result;
 }
 
+/**
+ * Function to batch retrieve all FX parameters in a single call
+ * This reduces the number of C-Go crossings dramatically
+ */
+bool plugin_bridge_batch_get_fx_parameters(void* track, int fx_idx, fx_param_t* params, 
+    int max_params, int* out_param_count) {
+    LOG_DEBUG("Called with track=%p, fx_idx=%d, params=%p, max_params=%d", 
+    track, fx_idx, params, max_params);
+
+    // Verify input pointers
+    if (!track || !params || !out_param_count || max_params <= 0) {
+        LOG_ERROR("Invalid parameters: track=%p, params=%p, out_param_count=%p, max_params=%d",
+        track, params, out_param_count, max_params);
+        return false;
+    }
+
+    // Get the GetFunc function using our bridge
+    void* getFuncPtr = plugin_bridge_get_get_func();
+    if (!getFuncPtr) {
+        LOG_ERROR("Failed to get GetFunc pointer");
+        return false;
+    }
+
+    // Get the number of parameters function
+    void* getParamCountFunc = NULL;
+    {
+        char funcName[64] = "TrackFX_GetNumParams";
+        getParamCountFunc = plugin_bridge_call_get_func(getFuncPtr, funcName);
+        if (!getParamCountFunc) {
+            LOG_ERROR("Failed to get TrackFX_GetNumParams function pointer");
+            return false;
+        }
+    }
+
+    // Get the parameter functions we need
+    void* getParamNameFunc = NULL;
+    void* getParamFunc = NULL;
+    void* getFormattedFunc = NULL;
+
+    {
+        char funcName[64] = "TrackFX_GetParamName";
+        getParamNameFunc = plugin_bridge_call_get_func(getFuncPtr, funcName);
+        if (!getParamNameFunc) {
+            LOG_ERROR("Failed to get TrackFX_GetParamName function pointer");
+            return false;
+        }
+    }
+
+    {
+        char funcName[64] = "TrackFX_GetParam";
+        getParamFunc = plugin_bridge_call_get_func(getFuncPtr, funcName);
+        if (!getParamFunc) {
+            LOG_ERROR("Failed to get TrackFX_GetParam function pointer");
+            return false;
+        }
+    }
+
+    {
+        char funcName[64] = "TrackFX_GetFormattedParamValue";
+        getFormattedFunc = plugin_bridge_call_get_func(getFuncPtr, funcName);
+        if (!getFormattedFunc) {
+            LOG_ERROR("Failed to get TrackFX_GetFormattedParamValue function pointer");
+            return false;
+        }
+    }
+
+    // Cast the function pointers to their proper types
+    int (*track_fx_get_param_count)(void*, int) = 
+    (int (*)(void*, int))getParamCountFunc;
+
+    void (*track_fx_get_param_name)(void*, int, int, char*, int) = 
+    (void (*)(void*, int, int, char*, int))getParamNameFunc;
+
+    double (*track_fx_get_param)(void*, int, int, double*, double*) = 
+    (double (*)(void*, int, int, double*, double*))getParamFunc;
+
+    void (*track_fx_get_param_formatted)(void*, int, int, char*, int) = 
+    (void (*)(void*, int, int, char*, int))getFormattedFunc;
+
+    // Get parameter count
+    int param_count = track_fx_get_param_count(track, fx_idx);
+    LOG_DEBUG("FX parameter count: %d", param_count);
+
+    if (param_count <= 0) {
+        LOG_WARNING("FX has no parameters (count=%d)", param_count);
+        *out_param_count = 0;
+        return true; // Not an error, just no parameters
+    }
+
+    // Limit to max_params
+    if (param_count > max_params) {
+        LOG_WARNING("Parameter count (%d) exceeds max_params (%d), limiting to max_params", 
+        param_count, max_params);
+        param_count = max_params;
+    }
+
+    // Get all parameter data
+    for (int i = 0; i < param_count; i++) {
+        // Get parameter name
+        track_fx_get_param_name(track, fx_idx, i, params[i].name, sizeof(params[i].name));
+
+        // Get parameter value with min/max
+        double min = 0, max = 0;
+        params[i].value = track_fx_get_param(track, fx_idx, i, &min, &max);
+        params[i].min = min;
+        params[i].max = max;
+
+        // Get formatted value
+        track_fx_get_param_formatted(track, fx_idx, i, params[i].formatted, sizeof(params[i].formatted));
+
+        LOG_DEBUG("Parameter %d: name=%s, value=%f, min=%f, max=%f, formatted=%s", 
+        i, params[i].name, params[i].value, params[i].min, params[i].max, params[i].formatted);
+    }
+
+    // Return parameter count
+    *out_param_count = param_count;
+    LOG_DEBUG("Successfully retrieved %d parameters", param_count);
+
+    return true;
+}
+
 // Global storage for REAPER's GetFunc pointer
 // This is a central lookup mechanism for all REAPER API functions
 // It's accessed from multiple functions but is set only once during initialization

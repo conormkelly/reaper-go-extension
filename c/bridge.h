@@ -44,6 +44,19 @@ int plugin_bridge_call_show_message_box(void* func_ptr, const char* text, const 
 void plugin_bridge_set_get_func(void* get_func_ptr);
 void* plugin_bridge_get_get_func();
 
+// Structure to hold parameter data
+typedef struct {
+    char name[256];
+    double value;
+    double min;
+    double max;
+    char formatted[256];
+} fx_param_t;
+
+// Function to get all FX parameters in a single call
+bool plugin_bridge_batch_get_fx_parameters(void* track, int fx_idx, fx_param_t* params, 
+                                        int max_params, int* out_param_count);
+
 // Forward declaration of the Go functions
 
 // GoReaperPluginEntry is the entry point called by REAPER. This function bridges between 

@@ -254,40 +254,14 @@ func GetFXParameters(track unsafe.Pointer, fxIndex int) (FXInfo, error) {
 	}
 	result.Name = fxName
 
-	// Get parameter count
-	paramCount, err := GetTrackFXParamCount(track, fxIndex)
+	// Use the batch function to get all parameters at once
+	parameters, err := BatchGetFXParameters(track, fxIndex)
 	if err != nil {
-		return result, fmt.Errorf("failed to get parameter count: %v", err)
+		return result, fmt.Errorf("failed to batch get FX parameters: %v", err)
 	}
 
-	// Collect each parameter
-	for i := 0; i < paramCount; i++ {
-		paramName, err := GetTrackFXParamName(track, fxIndex, i)
-		if err != nil {
-			return result, fmt.Errorf("failed to get parameter name: %v", err)
-		}
-
-		paramValue, min, max, err := GetTrackFXParamValueWithRange(track, fxIndex, i)
-		if err != nil {
-			return result, fmt.Errorf("failed to get parameter value: %v", err)
-		}
-
-		paramFormatted, err := GetTrackFXParamFormatted(track, fxIndex, i)
-		if err != nil {
-			return result, fmt.Errorf("failed to get formatted parameter value: %v", err)
-		}
-
-		param := FXParameter{
-			Index:          i,
-			Name:           paramName,
-			Value:          paramValue,
-			FormattedValue: paramFormatted,
-			Min:            min,
-			Max:            max,
-		}
-
-		result.Parameters = append(result.Parameters, param)
-	}
+	// Add parameters to result
+	result.Parameters = parameters
 
 	return result, nil
 }
@@ -332,4 +306,62 @@ func GetCurrentFXInfoJSON() (string, error) {
 	}
 
 	return string(jsonData), nil
+}
+
+// BatchGetFXParameters gets all parameters for an FX in a single call
+// This reduces the number of C-Go crossings dramatically
+func BatchGetFXParameters(track unsafe.Pointer, fxIndex int) ([]FXParameter, error) {
+	if !initialized {
+		return nil, fmt.Errorf("REAPER functions not initialized")
+	}
+
+	// Allocate memory for parameters (we'll allow up to 512 parameters)
+	const maxParams = 512
+	paramData := (*C.fx_param_t)(C.malloc(C.size_t(maxParams) * C.size_t(unsafe.Sizeof(C.fx_param_t{}))))
+	if paramData == nil {
+		return nil, fmt.Errorf("failed to allocate memory for parameter data")
+	}
+	defer C.free(unsafe.Pointer(paramData))
+
+	// Allocate memory for parameter count
+	paramCount := (*C.int)(C.malloc(C.size_t(unsafe.Sizeof(C.int(0)))))
+	if paramCount == nil {
+		return nil, fmt.Errorf("failed to allocate memory for parameter count")
+	}
+	defer C.free(unsafe.Pointer(paramCount))
+
+	// Call the C function to get all parameters
+	result := C.plugin_bridge_batch_get_fx_parameters(
+		track,
+		C.int(fxIndex),
+		paramData,
+		C.int(maxParams),
+		paramCount,
+	)
+
+	if !bool(result) {
+		return nil, fmt.Errorf("failed to get FX parameters")
+	}
+
+	// Convert C parameter data to Go slice
+	count := int(*paramCount)
+	parameters := make([]FXParameter, count)
+
+	// Create a slice of paramData
+	// This creates a Go slice that points to the C array without copying it
+	paramSlice := (*[maxParams]C.fx_param_t)(unsafe.Pointer(paramData))[:count:count]
+
+	// Copy parameter data to Go slice
+	for i := 0; i < count; i++ {
+		parameters[i] = FXParameter{
+			Index:          i,
+			Name:           C.GoString(&paramSlice[i].name[0]),
+			Value:          float64(paramSlice[i].value),
+			FormattedValue: C.GoString(&paramSlice[i].formatted[0]),
+			Min:            float64(paramSlice[i].min),
+			Max:            float64(paramSlice[i].max),
+		}
+	}
+
+	return parameters, nil
 }
