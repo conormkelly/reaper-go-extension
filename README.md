@@ -130,8 +130,8 @@ package actions
 
 import (
     "fmt"
-    "go-reaper/pkg/logger"
-    "go-reaper/reaper"
+    "go-reaper/src/pkg/logger"
+    "go-reaper/src/reaper"
 )
 
 // RegisterMyAction registers the new action

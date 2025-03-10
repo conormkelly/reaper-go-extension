@@ -1,7 +1,7 @@
 package core
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../sdk
+#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../../sdk
 #include "../c/bridge.h"
 */
 import "C"
@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	"go-reaper/pkg/logger"
-	"go-reaper/reaper"
+	"go-reaper/src/pkg/logger"
+	"go-reaper/src/reaper"
 )
 
 // Initialize initializes the core plugin functionality

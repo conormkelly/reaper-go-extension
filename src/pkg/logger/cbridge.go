@@ -1,7 +1,7 @@
 package logger
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../../c -I${SRCDIR}/../../sdk
+#cgo CFLAGS: -I${SRCDIR}/../../c -I${SRCDIR}/../../../sdk
 #include "../../c/logging.h"
 #include <stdlib.h>
 */

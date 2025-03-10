@@ -1,7 +1,7 @@
 package reaper
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../sdk
+#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../../sdk
 #include "../c/bridge.h"
 #include <stdlib.h>
 
@@ -20,7 +20,7 @@ extern int goHookCommandProc2(void* section, int commandId, int val, int valhw, 
 import "C"
 import (
 	"fmt"
-	"go-reaper/pkg/logger"
+	"go-reaper/src/pkg/logger"
 	"unsafe"
 )
 

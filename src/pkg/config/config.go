@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"go-reaper/pkg/logger"
-	"go-reaper/reaper"
+	"go-reaper/src/pkg/logger"
+	"go-reaper/src/reaper"
 	"sync"
 
 	"github.com/zalando/go-keyring"

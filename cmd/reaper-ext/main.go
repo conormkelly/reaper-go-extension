@@ -1,16 +1,16 @@
 package main
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/c -I${SRCDIR}/sdk
-#include "c/bridge.h"
+#cgo CFLAGS: -I${SRCDIR}/../../src/c -I${SRCDIR}/../../sdk
+#include "../../src/c/bridge.h"
 */
 import "C"
 import (
 	"unsafe"
 
-	"go-reaper/actions"
-	"go-reaper/core"
-	"go-reaper/pkg/logger"
+	"go-reaper/src/actions"
+	"go-reaper/src/core"
+	"go-reaper/src/pkg/logger"
 )
 
 //export GoReaperPluginEntry

@@ -1,7 +1,7 @@
 package reaper
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../sdk
+#cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../../sdk
 #include "../c/bridge.h"
 #include <stdlib.h>
 */

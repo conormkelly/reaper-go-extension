@@ -2,7 +2,8 @@
 
 GOOS=$(shell go env GOOS)
 SDK_DIR=./sdk
-SRC_DIR=.
+SRC_DIR=./src
+CMD_DIR=./cmd/reaper-ext
 BUILD_DIR=./build
 
 # Set extension based on platform
@@ -22,7 +23,7 @@ else
 endif
 
 # Find all Go source files
-GO_SRC_FILES := $(shell find $(SRC_DIR) -name "*.go")
+GO_SRC_FILES := $(shell find $(SRC_DIR) $(CMD_DIR) -name "*.go")
 
 # Make sure build directory exists
 $(shell mkdir -p $(BUILD_DIR))
@@ -30,9 +31,9 @@ $(shell mkdir -p $(BUILD_DIR))
 all: $(BUILD_DIR)/reaper_hello_go$(EXT)
 
 # First compile the Go code to a temporary archive
-# This now depends on all Go source files instead of just main.go and reaper.go
+# This now depends on all Go source files
 $(BUILD_DIR)/libgo_reaper.a: $(GO_SRC_FILES)
-	go build -buildmode=c-archive -o $(BUILD_DIR)/libgo_reaper.a main.go
+	go build -buildmode=c-archive -o $(BUILD_DIR)/libgo_reaper.a $(CMD_DIR)/main.go
 
 # Compile the bridge code
 $(BUILD_DIR)/bridge.o: $(SRC_DIR)/c/bridge.c $(SRC_DIR)/c/bridge.h

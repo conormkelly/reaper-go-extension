@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"go-reaper/pkg/logger"
+	"go-reaper/src/pkg/logger"
 )
 
 // RegisterAll registers all actions

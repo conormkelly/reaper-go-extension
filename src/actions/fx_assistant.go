@@ -3,9 +3,9 @@ package actions
 import (
 	"encoding/json"
 	"fmt"
-	"go-reaper/llm"
-	"go-reaper/pkg/logger"
-	"go-reaper/reaper"
+	"go-reaper/src/llm"
+	"go-reaper/src/pkg/logger"
+	"go-reaper/src/reaper"
 	"runtime"
 	"strconv"
 	"strings"
