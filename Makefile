@@ -25,8 +25,30 @@ endif
 # Find all Go source files
 GO_SRC_FILES := $(shell find $(SRC_DIR) $(CMD_DIR) -name "*.go")
 
+# Find all C source files in src/c and subdirectories
+C_SRC_FILES := $(shell find $(SRC_DIR)/c -name "*.c")
+C_OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SRC_FILES))
+
+# For macOS, also include Objective-C files from UI platform
+ifeq ($(GOOS),darwin)
+  OBJC_SRC_FILES := $(shell find $(SRC_DIR)/ui/platform/macos -name "*.m")
+  OBJC_OBJ_FILES := $(patsubst $(SRC_DIR)/%.m,$(BUILD_DIR)/%.o,$(OBJC_SRC_FILES))
+  
+  # Also include krbridge.m from actions directory
+  ACTIONS_OBJC_SRC := $(SRC_DIR)/actions/krbridge.m
+  ACTIONS_OBJC_OBJ := $(BUILD_DIR)/actions/krbridge.o
+  
+  # Combined object files
+  ALL_OBJ_FILES := $(C_OBJ_FILES) $(OBJC_OBJ_FILES) $(ACTIONS_OBJC_OBJ)
+else
+  ALL_OBJ_FILES := $(C_OBJ_FILES)
+endif
+
 # Make sure build directory exists
 $(shell mkdir -p $(BUILD_DIR))
+$(shell mkdir -p $(BUILD_DIR)/c/api)
+$(shell mkdir -p $(BUILD_DIR)/ui/platform/macos)
+$(shell mkdir -p $(BUILD_DIR)/actions)
 
 all: $(BUILD_DIR)/reaper_hello_go$(EXT)
 
@@ -35,31 +57,24 @@ all: $(BUILD_DIR)/reaper_hello_go$(EXT)
 $(BUILD_DIR)/libgo_reaper.a: $(GO_SRC_FILES)
 	go build -buildmode=c-archive -o $(BUILD_DIR)/libgo_reaper.a $(CMD_DIR)/main.go
 
-# Compile the bridge code
-$(BUILD_DIR)/bridge.o: $(SRC_DIR)/c/bridge.c $(SRC_DIR)/c/bridge.h
-	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/c/bridge.c -o $(BUILD_DIR)/bridge.o
+# Compile individual C files
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	mkdir -p $(dir $@)
+	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $< -o $@
 
-# Compile the logging code
-$(BUILD_DIR)/logging.o: $(SRC_DIR)/c/logging.c $(SRC_DIR)/c/logging.h
-	gcc -c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/c/logging.c -o $(BUILD_DIR)/logging.o
+# Compile Objective-C files (for macOS)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.m
+	mkdir -p $(dir $@)
+	gcc -c -x objective-c -I$(SDK_DIR) -I$(SRC_DIR) $< -o $@
 
-# Compile the keyring bridge code (for macOS only)
+# Link everything together - macOS specific version
 ifeq ($(GOOS),darwin)
-$(BUILD_DIR)/krbridge.o: $(SRC_DIR)/actions/krbridge.m $(SRC_DIR)/actions/krbridge.h
-	gcc -c -x objective-c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/actions/krbridge.m -o $(BUILD_DIR)/krbridge.o
-
-# Compile the macOS UI implementation
-$(BUILD_DIR)/macos_ui.o: $(SRC_DIR)/ui/platform/macos/ui.m
-	gcc -c -x objective-c -I$(SDK_DIR) -I$(SRC_DIR) $(SRC_DIR)/ui/platform/macos/ui.m -o $(BUILD_DIR)/macos_ui.o
-endif
-
-# Link everything together
-ifeq ($(GOOS),darwin)
-$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/macos_ui.o
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/krbridge.o $(BUILD_DIR)/macos_ui.o $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(ALL_OBJ_FILES)
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(ALL_OBJ_FILES) $(BUILD_DIR)/libgo_reaper.a $(MACOS_LDFLAGS) -lpthread
 else
-$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o
-	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(BUILD_DIR)/bridge.o $(BUILD_DIR)/logging.o $(BUILD_DIR)/libgo_reaper.a -lpthread
+# Link everything together - non-macOS version
+$(BUILD_DIR)/reaper_hello_go$(EXT): $(BUILD_DIR)/libgo_reaper.a $(ALL_OBJ_FILES)
+	gcc -shared -o $(BUILD_DIR)/reaper_hello_go$(EXT) $(ALL_OBJ_FILES) $(BUILD_DIR)/libgo_reaper.a -lpthread
 endif
 
 # Install the plugin to REAPER's plugin directory

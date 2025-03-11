@@ -17,7 +17,7 @@ import (
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "../c/logging.h"
+#include "../c/logging/logging.h"
 
 #import <Cocoa/Cocoa.h>
 
