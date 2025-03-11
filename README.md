@@ -373,6 +373,65 @@ When adding new REAPER API support:
 
 ## Development Notes
 
+### Avoiding Deadlocks
+
+Be extremely careful with mutex acquisition patterns. A common source is attempting to acquire the same lock twice in a nested call hierarchy.
+
+#### Use "Locked Helper" Pattern
+
+To avoid headaches, adopt the following pattern when implementing functions that manage shared state:
+
+```go
+// Public API - acquires mutex
+func DoSomething() error {
+    mutex.Lock()
+    defer mutex.Unlock()
+    return doSomethingLocked()
+}
+
+// Internal API - assumes mutex is already held
+// Can be safely called by other functions that already hold the lock
+func doSomethingLocked() error {
+    // Implementation without mutex acquisition
+    // ...
+}
+```
+
+In this codebase, we use the pattern for ExtState operations:
+
+```go
+// Public API with locking
+func HasExtState(section, key string) (bool, error) {
+    extStateMutex.Lock()
+    defer extStateMutex.Unlock()
+    return hasExtStateLocked(section, key)
+}
+
+// Internal implementation without locking
+func hasExtStateLocked(section, key string) (bool, error) {
+    // Get the function pointer and make the API call
+    // ...
+    return bool(result), nil
+}
+
+// Function that uses the locked helper internally
+func SaveSettings(settings Settings) error {
+    configMutex.Lock()
+    defer configMutex.Unlock()
+    
+    // Use our locked helper when we already hold the mutex
+    return saveSettingsLocked(settings)
+}
+```
+
+#### Additional Guidelines
+
+- **Name convention**: Use the `FunctionNameLocked` naming convention consistently
+- **Documentation**: Always document that the locked version assumes the mutex is held
+- **Visibility**: Make locked helpers private to prevent misuse
+- **Testing**: Test both direct and nested call patterns for thread safety
+- **Debugging**: Use detailed logging around mutex operations when deadlocks are suspected
+
 ### Platform Support
 
 The extension currently supports:
@@ -464,4 +523,4 @@ This project wouldn't be possible without:
 
 The REAPER SDK and WDL are property of Justin Frankel / Cockos Incorporated and are used in accordance with their licensing terms.
 
-The remaining Go code is provided under the [MIT License](LICENSE).
+The remaining code is provided under the [MIT License](LICENSE).
