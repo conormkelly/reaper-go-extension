@@ -1,5 +1,5 @@
-#ifndef KRBRIDGE_H
-#define KRBRIDGE_H
+#ifndef KEYRING_BRIDGE_H
+#define KEYRING_BRIDGE_H
 
 #include <stdbool.h>
 
@@ -20,4 +20,4 @@ bool kr_window_exists(void);
 // Callback from Objective-C to Go
 extern void go_process_keyring_key(char* key);
 
-#endif /* KRBRIDGE_H */
+#endif /* KEYRING_BRIDGE_H */

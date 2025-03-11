@@ -1,10 +1,10 @@
 package actions
 
 /*
-#cgo darwin CFLAGS: -I${SRCDIR}
+#cgo darwin CFLAGS: -I${SRCDIR}/../c/platform/macos
 #cgo darwin LDFLAGS: -framework Cocoa
 #include <stdlib.h>
-#include "settings_bridge.h"
+#include "../ui/platform/macos/settings_bridge.h"
 */
 import "C"
 import (

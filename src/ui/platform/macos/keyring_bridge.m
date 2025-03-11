@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include "../c/logging/logging.h"
+#include "../../../c/logging/logging.h"
 #import <Cocoa/Cocoa.h>
-#include "krbridge.h"
+#include "keyring_bridge.h"
 
 // Use our core logging system
 static void kr_log_to_reaper(LogLevel level, const char* message) {

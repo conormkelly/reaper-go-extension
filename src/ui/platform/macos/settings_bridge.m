@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include "../c/logging/logging.h"
+#include "../../../c/logging/logging.h"
 #import <Cocoa/Cocoa.h>
 #include "settings_bridge.h"
 

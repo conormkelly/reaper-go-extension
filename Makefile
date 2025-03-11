@@ -34,12 +34,8 @@ ifeq ($(GOOS),darwin)
   OBJC_SRC_FILES := $(shell find $(SRC_DIR)/ui/platform/macos -name "*.m")
   OBJC_OBJ_FILES := $(patsubst $(SRC_DIR)/%.m,$(BUILD_DIR)/%.o,$(OBJC_SRC_FILES))
   
-  # Also include krbridge.m from actions directory
-  ACTIONS_OBJC_SRC := $(SRC_DIR)/actions/krbridge.m
-  ACTIONS_OBJC_OBJ := $(BUILD_DIR)/actions/krbridge.o
-  
   # Combined object files
-  ALL_OBJ_FILES := $(C_OBJ_FILES) $(OBJC_OBJ_FILES) $(ACTIONS_OBJC_OBJ)
+  ALL_OBJ_FILES := $(C_OBJ_FILES) $(OBJC_OBJ_FILES)
 else
   ALL_OBJ_FILES := $(C_OBJ_FILES)
 endif
