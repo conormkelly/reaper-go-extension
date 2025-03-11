@@ -86,7 +86,16 @@ func SetExtState(section, key, value string, persist bool) error {
 	}
 
 	C.plugin_bridge_call_set_ext_state(getFuncPtr, cSection, cKey, cValue, persistInt)
-	logger.Debug("Set ext state: [%s]%s = %s (persist: %v)", section, key, value, persist)
+
+	// Verify with HasExtState for debugging
+	// hasKey, err := hasExtStateLocked(section, key)
+	// if err != nil {
+	// 	logger.Warning("SetExtState: Verification - HasExtState failed: %v", err)
+	// } else if !hasKey {
+	// 	logger.Warning("SetExtState: Verification - Key not found after setting!")
+	// } else {
+	// 	logger.Debug("SetExtState: Verification - Key found after setting")
+	// }
 
 	return nil
 }
@@ -100,6 +109,10 @@ func HasExtState(section, key string) (bool, error) {
 		return false, fmt.Errorf("REAPER functions not initialized")
 	}
 
+	return hasExtStateLocked(section, key)
+}
+
+func hasExtStateLocked(section, key string) (bool, error) {
 	// Get the function pointer
 	cFuncName := C.CString("HasExtState")
 	defer C.free(unsafe.Pointer(cFuncName))

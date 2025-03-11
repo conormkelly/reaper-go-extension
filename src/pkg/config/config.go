@@ -150,30 +150,57 @@ func GetSettings() Settings {
 	return loadSettings()
 }
 
-// SaveSettings saves the settings
-func SaveSettings(settings Settings) error {
-	configMutex.Lock()
-	defer configMutex.Unlock()
-
+// saveSettingsLocked saves settings without acquiring the mutex
+// It assumes the caller already holds configMutex
+func saveSettingsLocked(settings Settings) error {
 	// Ensure version is current before saving
 	settings.Version = VERSION
 
 	// Convert settings to JSON
+	logger.Debug("saveSettingsLocked: Converting settings to JSON...")
 	jsonData, err := json.Marshal(settings)
 	if err != nil {
 		logger.Error("Failed to marshal settings: %v", err)
 		return err
 	}
 
+	// Log JSON string for debugging (truncated for privacy)
+	jsonString := string(jsonData)
+	if len(jsonString) > 100 {
+		logger.Debug("saveSettingsLocked: JSON data (truncated): %s...", jsonString[:100])
+	} else {
+		logger.Debug("saveSettingsLocked: JSON data: %s", jsonString)
+	}
+
 	// Save to REAPER's ExtState
+	logger.Debug("saveSettingsLocked: About to call SetExtState...")
 	err = reaper.SetExtState(ExtStateSection, ExtStateKey, string(jsonData), true)
 	if err != nil {
 		logger.Error("Failed to save settings: %v", err)
 		return err
 	}
 
+	// Verify settings were saved
+	logger.Debug("saveSettingsLocked: Calling HasExtState to verify...")
+	hasSettings, err := reaper.HasExtState(ExtStateSection, ExtStateKey)
+	if err != nil {
+		logger.Warning("Failed to verify settings were saved: %v", err)
+	} else if !hasSettings {
+		logger.Warning("Settings appear not to have been saved (HasExtState returned false)")
+	} else {
+		logger.Debug("saveSettingsLocked: HasExtState confirmed settings were saved")
+	}
+
 	logger.Debug("Settings saved successfully")
 	return nil
+}
+
+// SaveSettings saves the settings
+func SaveSettings(settings Settings) error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+
+	return saveSettingsLocked(settings)
 }
 
 // loadSettings loads settings from REAPER's ExtState
@@ -278,7 +305,7 @@ func SetActiveProvider(provider Provider) error {
 
 	settings := loadSettings()
 	settings.ActiveProvider = provider
-	return SaveSettings(settings)
+	return saveSettingsLocked(settings)
 }
 
 // GetProviderConfig returns the configuration for the specified provider
@@ -310,18 +337,32 @@ func SetProviderConfig(provider Provider, model string, maxTokens int, temperatu
 	configMutex.Lock()
 	defer configMutex.Unlock()
 
+	logger.Debug("SetProviderConfig: Starting for provider=%s, model=%s, maxTokens=%d, temp=%.1f",
+		provider, model, maxTokens, temperature)
+
 	settings := loadSettings()
+
+	logger.Debug("SetProviderConfig: Loaded settings, version=%d", settings.Version)
 
 	switch provider {
 	case ProviderOpenAI:
 		settings.Providers.OpenAI.Model = model
 		settings.Providers.OpenAI.MaxTokens = maxTokens
 		settings.Providers.OpenAI.Temperature = temperature
+		logger.Debug("SetProviderConfig: Updated OpenAI settings")
 	default:
 		return fmt.Errorf("unsupported provider: %s", provider)
 	}
 
-	return SaveSettings(settings)
+	logger.Debug("SetProviderConfig: About to save settings...")
+	err := saveSettingsLocked(settings) // Use the helper function that doesn't try to acquire the mutex again
+	if err != nil {
+		logger.Error("SetProviderConfig: Failed to save settings: %v", err)
+		return err
+	}
+
+	logger.Debug("SetProviderConfig: Settings saved successfully")
+	return nil
 }
 
 // GetPromptConfig returns the prompt configuration
@@ -337,7 +378,7 @@ func SetPromptConfig(defaultPrompt string) error {
 	settings := loadSettings()
 	settings.Prompt.DefaultPrompt = defaultPrompt
 
-	return SaveSettings(settings)
+	return saveSettingsLocked(settings)
 }
 
 // GetGeneralConfig returns the general configuration
@@ -353,7 +394,7 @@ func SetGeneralConfig(autoApplyChanges bool) error {
 	settings := loadSettings()
 	settings.General.AutoApplyChanges = autoApplyChanges
 
-	return SaveSettings(settings)
+	return saveSettingsLocked(settings)
 }
 
 // ResetToDefaults resets all settings to defaults
@@ -362,5 +403,5 @@ func ResetToDefaults() error {
 	defer configMutex.Unlock()
 
 	// Save default settings
-	return SaveSettings(DefaultSettings)
+	return saveSettingsLocked(DefaultSettings)
 }
