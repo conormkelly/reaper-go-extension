@@ -68,6 +68,16 @@ typedef struct {
 // Function to format multiple parameter values in a single call
 bool plugin_bridge_batch_format_fx_parameters(void* track, fx_param_format_t* params, int param_count);
 
+// Structure to hold parameter change data
+typedef struct {
+    int fx_index;
+    int param_index;
+    double value;
+} fx_param_change_t;
+
+// Function to apply multiple parameter changes in a single call
+bool plugin_bridge_batch_set_fx_parameters(void* track, fx_param_change_t* changes, int change_count);
+
 void plugin_bridge_set_get_func(void* get_func_ptr);
 void* plugin_bridge_get_get_func();
 

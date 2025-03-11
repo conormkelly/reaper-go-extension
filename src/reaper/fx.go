@@ -536,3 +536,62 @@ func GetFXParametersWithMinMax(track unsafe.Pointer, fxIndex int) (FXInfo, error
 	result.Parameters = enhancedParams
 	return result, nil
 }
+
+// BatchSetFXParameters applies multiple parameter changes in a single call
+// This is much more efficient than making multiple CGo transitions
+func BatchSetFXParameters(track unsafe.Pointer, changes []ParameterChange) error {
+	if !initialized {
+		return fmt.Errorf("REAPER functions not initialized")
+	}
+
+	count := len(changes)
+	if count == 0 {
+		return nil // Nothing to do
+	}
+
+	// Allocate memory for parameter changes
+	changeData := (*C.fx_param_change_t)(C.malloc(C.size_t(count) * C.size_t(unsafe.Sizeof(C.fx_param_change_t{}))))
+	if changeData == nil {
+		return fmt.Errorf("failed to allocate memory for parameter changes")
+	}
+	defer C.free(unsafe.Pointer(changeData))
+
+	// Create a slice view of the C array
+	changeSlice := (*[1 << 30]C.fx_param_change_t)(unsafe.Pointer(changeData))[:count:count]
+
+	// Fill in the change data
+	for i, change := range changes {
+		changeSlice[i].fx_index = C.int(change.FXIndex)
+		changeSlice[i].param_index = C.int(change.ParamIndex)
+		changeSlice[i].value = C.double(change.Value)
+	}
+
+	// Call the batch function
+	result := C.plugin_bridge_batch_set_fx_parameters(track, changeData, C.int(count))
+	if !bool(result) {
+		return fmt.Errorf("failed to apply parameter changes")
+	}
+
+	logger.Debug("Applied %d parameter changes successfully", count)
+	return nil
+}
+
+// BatchSetFXParametersWithUndo applies multiple parameter changes in a single call
+// and wraps the changes in an undo block
+func BatchSetFXParametersWithUndo(track unsafe.Pointer, changes []ParameterChange, undoLabel string) error {
+	// Start undo block
+	if err := BeginUndoBlock(undoLabel); err != nil {
+		logger.Warning("Could not start undo block: %v", err)
+		// Continue anyway, just without undo support
+	}
+
+	// Apply the changes
+	err := BatchSetFXParameters(track, changes)
+
+	// End undo block (even if there was an error)
+	if endErr := EndUndoBlock(undoLabel, 0); endErr != nil {
+		logger.Warning("Could not end undo block: %v", endErr)
+	}
+
+	return err
+}

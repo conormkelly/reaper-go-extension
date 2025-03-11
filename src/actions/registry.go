@@ -39,6 +39,11 @@ func RegisterAll() error {
 		return err
 	}
 
+	// Register Batch Parameter Demo action
+	if err := RegisterBatchParamDemo(); err != nil {
+		return err
+	}
+
 	// Register other actions here as they are implemented
 
 	logger.Debug("----------------------------------------------------------")

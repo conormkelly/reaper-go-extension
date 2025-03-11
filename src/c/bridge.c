@@ -745,6 +745,70 @@ bool plugin_bridge_batch_format_fx_parameters(void* track, fx_param_format_t* pa
     return true;
 }
 
+/**
+ * Function to batch apply multiple parameter changes in a single call
+ * This reduces the number of C-Go crossings dramatically
+ */
+bool plugin_bridge_batch_set_fx_parameters(void* track, fx_param_change_t* changes, int change_count) {
+    LOG_DEBUG("Called with track=%p, changes=%p, change_count=%d",
+              track, changes, change_count);
+    
+    // Verify input pointers
+    if (!track || !changes || change_count <= 0) {
+        LOG_ERROR("Invalid parameters: track=%p, changes=%p, change_count=%d",
+                 track, changes, change_count);
+        return false;
+    }
+    
+    // Get the GetFunc function using our bridge
+    void* getFuncPtr = plugin_bridge_get_get_func();
+    if (!getFuncPtr) {
+        LOG_ERROR("Failed to get GetFunc pointer");
+        return false;
+    }
+    
+    // Get the TrackFX_SetParam function
+    void* setParamFunc = NULL;
+    {
+        char funcName[64] = "TrackFX_SetParam";
+        setParamFunc = plugin_bridge_call_get_func(getFuncPtr, funcName);
+        if (!setParamFunc) {
+            LOG_ERROR("Failed to get TrackFX_SetParam function pointer");
+            return false;
+        }
+    }
+    
+    // Apply all parameter changes
+    bool all_success = true;
+    for (int i = 0; i < change_count; i++) {
+        // Get the change data
+        int fx_idx = changes[i].fx_index;
+        int param_idx = changes[i].param_index;
+        double value = changes[i].value;
+        
+        // Apply the parameter change
+        bool success = plugin_bridge_call_track_fx_set_param(
+            setParamFunc,
+            track,
+            fx_idx,
+            param_idx,
+            value
+        );
+        
+        if (!success) {
+            LOG_ERROR("Failed to set parameter: fx_index=%d, param_index=%d, value=%f",
+                     fx_idx, param_idx, value);
+            all_success = false;
+        } else {
+            LOG_DEBUG("Parameter set: fx_index=%d, param_index=%d, value=%f",
+                     fx_idx, param_idx, value);
+        }
+    }
+    
+    LOG_DEBUG("Applied %d parameter changes, success=%d", change_count, all_success);
+    return all_success;
+}
+
 // Global storage for REAPER's GetFunc pointer
 // This is a central lookup mechanism for all REAPER API functions
 // It's accessed from multiple functions but is set only once during initialization

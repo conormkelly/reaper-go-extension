@@ -12,6 +12,13 @@ type FXParameter struct {
 	MaxFormatted   string  `json:"maxFormatted"`   // Human-readable maximum value
 }
 
+// ParameterChange represents a parameter value change to be applied
+type ParameterChange struct {
+	FXIndex    int     `json:"fxIndex"`    // FX index
+	ParamIndex int     `json:"paramIndex"` // Parameter index
+	Value      float64 `json:"value"`      // New value to set
+}
+
 // FXInfo represents an FX and its parameters
 type FXInfo struct {
 	Index      int           `json:"index"`
