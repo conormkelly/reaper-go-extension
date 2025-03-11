@@ -84,4 +84,39 @@ install: $(BUILD_DIR)/reaper_hello_go$(EXT)
 clean:
 	rm -rf $(BUILD_DIR)/*
 
-.PHONY: all clean install
+# Check logs for errors and important messages
+check:
+	@echo "Checking log file reaper-ext.log for issues..."
+	@echo ""
+	
+	@echo "=== Checking for ERROR messages ==="
+	@rg "ERROR" reaper-ext.log || echo "No errors found."
+	@echo ""
+	
+	@echo "=== Checking for WARNING messages ==="
+	@rg "WARNING" reaper-ext.log || echo "No warnings found."
+	@echo ""
+	
+	@echo "=== Checking for successful plugin loading ==="
+	@rg "plugin loaded successfully" reaper-ext.log || echo "Plugin load message not found!"
+	@echo ""
+	
+	@echo "=== Checking for function call failures ==="
+	@rg "failed to" reaper-ext.log || echo "No function call failures found."
+	@echo ""
+	
+	@echo "=== Examining bridge initialization ==="
+	@rg "REAPER plugin entry" reaper-ext.log || echo "Bridge initialization not found!"
+	@echo ""
+	
+	@echo "=== Checking for action issues ==="
+	@rg "action triggered" reaper-ext.log || echo "No actions triggered yet."
+	@echo ""
+	
+	@echo "=== Verifying API function lookups ==="
+	@rg "Failed to get .* function pointer" reaper-ext.log || echo "All API functions found successfully."
+	@echo ""
+	
+	@echo "Log check complete!"
+
+.PHONY: all clean install check
