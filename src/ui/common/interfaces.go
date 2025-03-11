@@ -22,9 +22,6 @@ type Window interface {
 	// AddButton adds a button
 	AddButton(text string, x, y, width, height int, callback ActionCallback) error
 
-	// AddSlider adds a horizontal slider
-	AddSlider(min, max, value float64, x, y, width, height int, callback ValueChangeCallback) error
-
 	// AddTextField adds a text field
 	AddTextField(placeholder string, x, y, width, height int) error
 
@@ -32,46 +29,10 @@ type Window interface {
 	SetTitle(title string) error
 }
 
-// ParameterView represents a UI component that displays a parameter with slider
-type ParameterView interface {
-	// SetValue updates the displayed value
-	SetValue(value float64) error
-
-	// GetValue returns the current value
-	GetValue() float64
-
-	// SetFormattedValue updates the displayed formatted value
-	SetFormattedValue(formatted string) error
-
-	// SetExplanation updates the explanation text
-	SetExplanation(text string) error
-
-	// SetOriginalValue sets the original value (for comparison)
-	SetOriginalValue(value float64, formatted string) error
-
-	// OnValueChanged sets the callback for value changes
-	OnValueChanged(callback ValueChangeCallback) error
-
-	// Show the parameter view
-	Show() error
-
-	// Hide the parameter view
-	Hide() error
-}
-
-// ParamViewFactory creates parameter visualization components
-type ParamViewFactory interface {
-	// CreateParamView creates a parameter view inside the given window
-	CreateParamView(window Window, param ParamState, x, y, width, height int) (ParameterView, error)
-
-	// CreateWindow creates a window for parameter visualization
-	CreateWindow(options WindowOptions) (Window, error)
-}
-
 // UISystem provides access to the platform's UI capabilities
 type UISystem interface {
-	// GetParamViewFactory returns a factory for parameter visualization components
-	GetParamViewFactory() ParamViewFactory
+	// CreateWindow creates a window with the given options
+	CreateWindow(options WindowOptions) (Window, error)
 
 	// RunOnMainThread runs the given function on the UI thread
 	RunOnMainThread(func()) error

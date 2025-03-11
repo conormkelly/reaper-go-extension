@@ -24,11 +24,6 @@ func RegisterAll() error {
 		return err
 	}
 
-	// Register UI Sandbox action
-	if err := RegisterUISandbox(); err != nil {
-		return err
-	}
-
 	// Register Undo Test action
 	if err := RegisterUndoDemo(); err != nil {
 		return err

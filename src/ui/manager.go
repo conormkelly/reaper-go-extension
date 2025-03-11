@@ -82,19 +82,7 @@ func CreateWindow(options common.WindowOptions) (common.Window, error) {
 		return nil, err
 	}
 
-	factory := sys.GetParamViewFactory()
-	return factory.CreateWindow(options)
-}
-
-// CreateParamView creates a parameter view
-func CreateParamView(window common.Window, param common.ParamState, x, y, width, height int) (common.ParameterView, error) {
-	sys, err := GetUISystem()
-	if err != nil {
-		return nil, err
-	}
-
-	factory := sys.GetParamViewFactory()
-	return factory.CreateParamView(window, param, x, y, width, height)
+	return sys.CreateWindow(options)
 }
 
 // ShowMessageBox shows a message box
