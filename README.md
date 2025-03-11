@@ -22,56 +22,72 @@ This project is an experiment to create REAPER extensions using Go with CGO to b
 ## Project Structure
 
 ```txt
-reaper-go-extension/
-├── actions/              # Package for all action handlers
-│   ├── fx_assistant.go   # LLM FX Assistant main implementation
-│   ├── keyring_demo.go   # go-keyring Aintegration demo
-│   ├── macos_native.go   # Native macOS UI demo implementation
-│   └── registry.go       # Central registry for action registration
-├── c/                    # C-specific code
-│   ├── bridge.c          # C bridge to REAPER API
-│   ├── bridge.h          # C bridge header
-│   ├── logging.c         # C logging implementation
-│   └── logging.h         # C logging header
-├── core/                 # Core extension functionality
-│   └── bridge.go         # Core initialization and plugin entry logic
-├── pkg/                  # Shared packages
-│   ├── config/           # Configuration management
-│   │   └── config.go     # Unified config system with versioning
-│   └── logger/           # Logging package
-│       ├── logger.go     # Go logging interface
-│       └── cbridge.go    # Bridge to C logging functions
-├── llm/                  # LLM integration
-│   └── client.go         # LLM client implementation
-├── reaper/               # REAPER API wrappers
-│   ├── actions.go        # Action registration and handling
-│   ├── api.go            # Core API initialization
-│   ├── console.go        # Console logging functions
-│   ├── extstate.go       # Extended State API access
-│   ├── fx.go             # FX-related functions
-│   ├── tracks.go         # Track-related functions
-│   └── types.go          # Type definitions
-├── build/                # Build artifacts
-├── sdk/                  # REAPER SDK (dependency: required at root)
-├── WDL/                  # Web Development Library (dependency: required at root)
-├── main.go               # Main entry point and plugin export
-├── c_go_config.go        # CGO configuration
-└── Makefile              # Build system
+go-reaper/
+├── cmd/
+│   └── reaper-ext/        # Main entry point
+│       └── main.go        # Plugin entry and initialization
+├── src/
+│   ├── actions/           # Package for all action handlers
+│   │   ├── fx_assistant.go  # LLM FX Assistant main implementation
+│   │   ├── keyring_demo.go  # go-keyring integration demo
+│   │   ├── macos_native.go  # Native macOS UI demo implementation
+│   │   └── registry.go      # Central registry for action registration
+│   ├── c/                 # C-specific code
+│   │   ├── api/           # C API bridge implementations
+│   │   │   ├── extstate.c   # ExtState API bridge
+│   │   │   ├── fx.c         # FX API bridge
+│   │   │   ├── tracks.c     # Track API bridge
+│   │   │   ├── ui.c         # UI API bridge
+│   │   │   └── undo.c       # Undo API bridge
+│   │   ├── logging/       # C logging implementation
+│   │   │   ├── logging.c    # C logging implementation
+│   │   │   └── logging.h    # C logging header
+│   │   ├── bridge.c       # Core C bridge to REAPER API
+│   │   └── bridge.h       # Core C bridge header
+│   ├── core/              # Core extension functionality
+│   │   └── bridge.go      # Core initialization and bridge code
+│   ├── llm/               # LLM integration
+│   │   └── client.go      # LLM client implementation
+│   ├── pkg/               # Shared packages
+│   │   ├── config/        # Configuration management
+│   │   │   └── config.go  # Unified config system with versioning
+│   │   └── logger/        # Logging package
+│   │       ├── logger.go    # Go logging interface
+│   │       └── cbridge.go   # Bridge to C logging functions
+│   ├── reaper/            # REAPER API wrappers
+│   │   ├── actions.go     # Action registration and handling
+│   │   ├── api.go         # Core API initialization
+│   │   ├── console.go     # Console logging functions
+│   │   ├── extstate.go    # Extended State API access
+│   │   ├── fx.go          # FX-related functions
+│   │   ├── tracks.go      # Track-related functions
+│   │   ├── types.go       # Type definitions
+│   │   └── more...        # Additional API wrappers
+│   ├── ui/                # UI component framework
+│   │   ├── common/        # Common UI definitions
+│   │   ├── platform/      # Platform-specific implementations
+│   │   │   └── macos/     # macOS UI implementation
+│   │   └── manager.go     # UI manager
+│   └── c_go_config.go     # CGO configuration
+├── build/                 # Build artifacts
+├── sdk/                   # REAPER SDK (dependency: required at root)
+├── WDL/                   # Web Development Library (dependency: required at root)
+└── Makefile               # Build system
 ```
 
 ### Key Components
 
-- **main.go**: The entry point for the extension, exporting the `GoReaperPluginEntry` function which REAPER calls when loading the plugin.
+- **cmd/reaper-ext/main.go**: The entry point for the extension, exporting the `GoReaperPluginEntry` function which REAPER calls when loading the plugin.
 
-- **c/bridge.c**: A C bridge that connects Go code to REAPER's C API, handling function pointer conversions and memory management between the two languages.
+- **src/c/bridge.c**: A C bridge that connects Go code to REAPER's C API, handling function pointer conversions and memory management between the two languages.
 
-- **reaper/**: Contains Go wrappers for REAPER's C API, making it easier to work with REAPER from Go.
+- **src/reaper/**: Contains Go wrappers for REAPER's C API, making it easier to work with REAPER from Go.
   
-- **actions/**: Contains all the custom actions that this extension provides, with a central registry to handle action registration.
+- **src/actions/**: Contains all the custom actions that this extension provides, with a central registry to handle action registration.
 
-- **pkg/config/**: Provides a unified configuration system with versioning support for storing and retrieving user preferences.
+- **src/pkg/config/**: Provides a unified configuration system with versioning support for storing and retrieving user preferences.
 
-- **pkg/logger/**: Centralized logging package that can be used throughout the application without circular dependencies.
+- **src/pkg/logger/**: Centralized logging package that can be used throughout the application (in C and Go).
 
 ## Configuration System
 
@@ -119,9 +135,9 @@ config.SetProviderConfig(config.ProviderOpenAI, "gpt-4", 2048, 0.8)
 
 To add a new action to the extension:
 
-1. Create a new file in the `actions/` directory (e.g., `actions/my_action.go`)
+1. Create a new file in the `src/actions/` directory (e.g., `src/actions/my_action.go`)
 2. Define your action handler and registration function
-3. Add your registration function to `actions/registry.go`
+3. Add your registration function to `src/actions/registry.go`
 
 Example of a new action file:
 
@@ -152,7 +168,7 @@ func handleMyAction() {
 }
 ```
 
-Then update `actions/registry.go` to register your new action:
+Then update `src/actions/registry.go` to register your new action:
 
 ```go
 // RegisterAll registers all actions
@@ -170,11 +186,11 @@ func RegisterAll() error {
 
 ## Working with REAPER's API
 
-The `reaper/` package provides Go wrappers for common REAPER API functions. If you need to add support for additional REAPER functions:
+The `src/reaper/` package provides Go wrappers for common REAPER API functions. If you need to add support for additional REAPER functions:
 
-1. Choose the appropriate file in `reaper/` based on functionality 
+1. Choose the appropriate file in `src/reaper/` based on functionality 
 2. Add the new function wrapper
-3. Update the C bridge in `c/bridge.c/h` if necessary
+3. Update the C bridge in `src/c/api/` and `src/c/bridge.c/h` if necessary
 
 ### Optimized Parameter Access
 
@@ -203,24 +219,24 @@ The REAPER Go extension is structured in layers:
 └─────────┬─────────┘
           │ C API calls
 ┌─────────▼─────────┐
-│  Plugin Bridge    │  C code (c/bridge.c/h)
+│  Plugin Bridge    │  C code (src/c/bridge.c/h)
 │  (C/Go Interface) │  Translates between C and Go
 └─────────┬─────────┘
           │ CGo bindings
 ┌─────────▼─────────┐
-│   REAPER Wrapper  │  Go code (reaper/*.go)
+│   REAPER Wrapper  │  Go code (src/reaper/*.go)
 │    (Go API)       │  Provides Go-friendly API
 └─────────┬─────────┘
           │ Go function calls
 ┌─────────▼─────────┐
-│  Extension Logic  │  Go code (actions/ and more)
+│  Extension Logic  │  Go code (src/actions/ and more)
 │  (Actions & UI)   │  Implements plugin features
 └───────────────────┘
 ```
 
 ### Purpose
 
-The plugin bridge (c/bridge.c/h) serves as the critical interface layer between Go and REAPER's native C API. Its primary functions are:
+The plugin bridge (`src/c/bridge.c/h` and `src/c/api/*`) serves as the critical interface layer between Go and REAPER's native C API. Its primary functions are:
 
 1. **Entry Point Exposure**: Provides the `ReaperPluginEntry` function that REAPER calls when loading the plugin
 2. **Function Pointer Handling**: Safely converts and passes C function pointers between REAPER and Go
@@ -242,8 +258,8 @@ The plugin bridge (c/bridge.c/h) serves as the critical interface layer between 
 
 When Go code needs to call a REAPER function:
 
-1. Go calls a wrapper function in reaper/reaper.go
-2. The wrapper uses CGo to call a bridge function in c/bridge.c
+1. Go calls a wrapper function in src/reaper/*.go
+2. The wrapper uses CGo to call a bridge function in src/c/api/*.c or src/c/bridge.c
 3. The bridge function uses the stored function pointers to call into REAPER
 4. Results flow back through the same chain
 
@@ -251,7 +267,7 @@ When Go code needs to call a REAPER function:
 
 When REAPER triggers an action:
 
-1. REAPER calls the registered C function in c/bridge.c
+1. REAPER calls the registered C function in src/c/bridge.c
 2. The C function forwards the call to the exported Go function (e.g., `goHookCommandProc`)
 3. The Go function processes the action and returns a result
 4. The result is passed back to REAPER
@@ -272,9 +288,18 @@ The bridge provides typed wrappers for REAPER functions to handle C function poi
 
 ```c
 void plugin_bridge_call_show_console_msg(void* func_ptr, const char* message) {
-    if (!func_ptr || !message) return; // Safety check
+    LOG_DEBUG("Called with func_ptr=%p, message=%s", func_ptr, message ? message : "NULL");
+    
+    // Verify input pointers aren't NULL
+    if (!func_ptr || !message) {
+        LOG_ERROR("Invalid parameters: func_ptr=%p, message=%p", func_ptr, message);
+        return;
+    }
+    
     void (*show_console_msg)(const char*) = (void (*)(const char*))func_ptr;
+    LOG_DEBUG("Calling ShowConsoleMsg with message");
     show_console_msg(message);
+    LOG_DEBUG("ShowConsoleMsg call completed");
 }
 ```
 
@@ -334,8 +359,8 @@ The plugin bridge uses these design patterns:
 When adding new REAPER API support:
 
 1. Find the REAPER function signature in the SDK headers
-2. Add a typed wrapper function in c/bridge.h/.c
-3. Add the corresponding Go wrapper in reaper/reaper.go
+2. Add a typed wrapper function in the appropriate file in src/c/api/
+3. Add the corresponding Go wrapper in src/reaper/
 4. Use the wrapper in your extension logic
 
 ### Common Pitfalls
@@ -362,11 +387,11 @@ The extension implements native macOS UI using Cocoa via CGO:
 
 - Thread-safe with proper main thread handling
 - Lifecycle management for windows
-- Example implementations in the `actions` directory
+- Example implementations in the `src/actions` directory
 
 ## Logging System
 
-The REAPER Go Extension includes a flexible logging system through the `pkg/logger` package.
+The REAPER Go Extension includes a flexible logging system through the `src/pkg/logger` package.
 
 ### Configuration Options
 
@@ -403,10 +428,10 @@ If no custom path is specified, logs are stored in:
 
 ### Developer Usage
 
-For Go code, use the `pkg/logger` package:
+For Go code, use the `src/pkg/logger` package:
 
 ```go
-import "go-reaper/pkg/logger"
+import "go-reaper/src/pkg/logger"
 
 // Log at various levels - context and function names are automatically added
 logger.Error("Failed to process: %v", err)
@@ -416,7 +441,7 @@ logger.Debug("Processing item %d of %d: %s", i, total, item)
 logger.Trace("Function called with args: %+v", args)
 ```
 
-For C/C++ code, use the provided logging macros in `c/logging.h`:
+For C/C++ code, use the provided logging macros in `src/c/logging/logging.h`:
 
 ```c
 // These macros automatically include function names and only format strings
