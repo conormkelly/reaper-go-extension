@@ -14,6 +14,11 @@ func RegisterAll() error {
 		return err
 	}
 
+	// Register FX Assistant Settings
+	if err := RegisterFXAssistantSettings(); err != nil {
+		return err
+	}
+
 	// Register Native UI action
 	if err := RegisterNativeWindow(); err != nil {
 		return err
