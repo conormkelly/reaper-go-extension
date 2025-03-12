@@ -1,10 +1,10 @@
-package actions
+package fxassistant
 
 /*
-#cgo darwin CFLAGS: -I${SRCDIR}/../c/platform/macos
+#cgo darwin CFLAGS: -I${SRCDIR}/../../c/platform/macos
 #cgo darwin LDFLAGS: -framework Cocoa
 #include <stdlib.h>
-#include "../ui/platform/macos/settings_bridge.h"
+#include "../../ui/platform/macos/settings_bridge.h"
 */
 import "C"
 import (
@@ -16,15 +16,15 @@ import (
 	"unsafe"
 )
 
-// RegisterFXAssistantSettings registers the LLM FX Assistant Settings action
-func RegisterFXAssistantSettings() error {
+// RegisterSettingsAction registers the LLM FX Assistant Settings action
+func RegisterSettingsAction() error {
 	actionID, err := reaper.RegisterMainAction("GO_FX_ASSISTANT_SETTINGS", "Go: LLM FX Assistant Settings")
 	if err != nil {
 		return fmt.Errorf("failed to register LLM FX Assistant Settings: %v", err)
 	}
 
 	logger.Info("LLM FX Assistant Settings registered with ID: %d", actionID)
-	reaper.SetActionHandler("GO_FX_ASSISTANT_SETTINGS", handleFXAssistantSettings)
+	reaper.SetActionHandler("GO_FX_ASSISTANT_SETTINGS", handleSettingsAction)
 	return nil
 }
 
@@ -154,12 +154,12 @@ func go_process_settings(apiKey *C.char, model *C.char, temperature C.double) {
 	logger.Debug("==== go_process_settings END ====")
 }
 
-// handleFXAssistantSettings handles the settings management for the LLM FX Assistant
-func handleFXAssistantSettings() {
+// handleSettingsAction handles the settings management for the LLM FX Assistant
+func handleSettingsAction() {
 	// Only macOS is supported for now
 	if runtime.GOOS != "darwin" {
 		// Fallback to basic message on non-macOS platforms
-		handleFXAssistantSettingsFallback()
+		handleSettingsActionFallback()
 		return
 	}
 
@@ -220,8 +220,8 @@ func IsSettingsWindowOpen() bool {
 	return false
 }
 
-// handleFXAssistantSettingsFallback provides an error message for non-macOS platforms
-func handleFXAssistantSettingsFallback() {
+// handleSettingsActionFallback provides an error message for non-macOS platforms
+func handleSettingsActionFallback() {
 	logger.Debug("----- LLM FX Assistant Settings Fallback Activated -----")
 
 	// Show message that native UI is only available on macOS for now

@@ -1,6 +1,7 @@
 package actions
 
 import (
+	fxassistant "go-reaper/src/actions/fx-assistant"
 	"go-reaper/src/pkg/logger"
 )
 
@@ -15,7 +16,7 @@ func RegisterAll() error {
 	}
 
 	// Register FX Assistant Settings
-	if err := RegisterFXAssistantSettings(); err != nil {
+	if err := fxassistant.RegisterSettingsAction(); err != nil {
 		return err
 	}
 
