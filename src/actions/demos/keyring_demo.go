@@ -1,4 +1,4 @@
-package actions
+package demo
 
 import (
 	"fmt"
@@ -13,10 +13,10 @@ import (
 // This file implements a keyring test with native macOS UI
 
 /*
-#cgo darwin CFLAGS: -I${SRCDIR}/../c/platform/macos
+#cgo darwin CFLAGS: -I${SRCDIR}/../../c/platform/macos
 #cgo darwin LDFLAGS: -framework Cocoa
 #include <stdlib.h>
-#include "../ui/platform/macos/keyring_bridge.h"
+#include "../../ui/platform/macos/keyring_bridge.h"
 */
 import "C"
 

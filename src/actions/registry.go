@@ -1,6 +1,7 @@
 package actions
 
 import (
+	demo "go-reaper/src/actions/demos"
 	fxassistant "go-reaper/src/actions/fx-assistant"
 	"go-reaper/src/pkg/logger"
 )
@@ -11,7 +12,7 @@ func RegisterAll() error {
 	logger.Debug("Registering Go REAPER extension actions...")
 
 	// Register FX Assistant (LLM FX Assistant)
-	if err := RegisterFXAssistant(); err != nil {
+	if err := demo.RegisterFXAssistant(); err != nil {
 		return err
 	}
 
@@ -21,27 +22,27 @@ func RegisterAll() error {
 	}
 
 	// Register Native UI action
-	if err := RegisterNativeWindow(); err != nil {
+	if err := demo.RegisterNativeWindow(); err != nil {
 		return err
 	}
 
 	// Register Keyring test
-	if err := RegisterKeyringTest(); err != nil {
+	if err := demo.RegisterKeyringTest(); err != nil {
 		return err
 	}
 
 	// Register Undo Test action
-	if err := RegisterUndoDemo(); err != nil {
+	if err := demo.RegisterUndoDemo(); err != nil {
 		return err
 	}
 
 	// Register Param Format demo action
-	if err := RegisterParamFormatDemo(); err != nil {
+	if err := demo.RegisterParamFormatDemo(); err != nil {
 		return err
 	}
 
 	// Register Batch Parameter Demo action
-	if err := RegisterBatchParamDemo(); err != nil {
+	if err := demo.RegisterBatchParamDemo(); err != nil {
 		return err
 	}
 

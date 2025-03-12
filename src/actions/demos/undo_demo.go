@@ -1,8 +1,8 @@
-package actions
+package demo
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../../sdk
-#include "../c/bridge.h"
+#include "../../c/bridge.h"
 #include <stdlib.h>
 */
 import "C"

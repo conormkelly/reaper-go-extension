@@ -1,4 +1,4 @@
-package actions
+package demo
 
 import (
 	"encoding/json"

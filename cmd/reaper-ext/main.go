@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"go-reaper/src/actions"
+	demo "go-reaper/src/actions/demos"
 	"go-reaper/src/core"
 	"go-reaper/src/pkg/logger"
 )
@@ -18,8 +19,8 @@ func GoReaperPluginEntry(hInstance unsafe.Pointer, rec unsafe.Pointer) C.int {
 	// If rec is null, REAPER is unloading the plugin
 	if rec == nil {
 		// Close any open UI windows
-		actions.CloseNativeWindow()
-		actions.CloseKeyringWindow()
+		demo.CloseNativeWindow()
+		demo.CloseKeyringWindow()
 
 		// Perform cleanup tasks including logging shutdown
 		logger.Cleanup()
