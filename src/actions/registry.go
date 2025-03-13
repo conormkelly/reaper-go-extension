@@ -12,7 +12,7 @@ func RegisterAll() error {
 	logger.Debug("Registering Go REAPER extension actions...")
 
 	// Register FX Assistant (LLM FX Assistant)
-	if err := demo.RegisterFXAssistant(); err != nil {
+	if err := fxassistant.RegisterFXAssistantAction(); err != nil {
 		return err
 	}
 
