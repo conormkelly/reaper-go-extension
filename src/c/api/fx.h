@@ -21,6 +21,7 @@ typedef struct {
 
 // Structure to hold parameter formatting request
 typedef struct {
+    int track_index;
     int fx_index;
     int param_index;
     double value;
@@ -33,6 +34,14 @@ typedef struct {
     int param_index;
     double value;
 } fx_param_change_t;
+
+// Structure for multi-track parameter change data
+typedef struct {
+    int track_index;
+    int fx_index;
+    int param_index;
+    double value;
+} fx_param_multi_change_t;
 
 // FX-related API functions
 int plugin_bridge_call_track_fx_get_count(void* func_ptr, void* track);
@@ -48,6 +57,22 @@ void plugin_bridge_call_track_fx_format_param_value(void* func_ptr, void* track,
 bool plugin_bridge_batch_get_fx_parameters(void* track, int fx_idx, fx_param_t* params, int max_params, int* out_param_count);
 bool plugin_bridge_batch_format_fx_parameters(void* track, fx_param_format_t* params, int param_count);
 bool plugin_bridge_batch_set_fx_parameters(void* track, fx_param_change_t* changes, int change_count);
+
+// Multi-track batch operations
+bool plugin_bridge_batch_get_multi_track_fx_parameters(
+    void** tracks, int track_count, 
+    int** fx_indices, int* fx_counts,
+    fx_param_t** param_buffers, int* param_counts);
+
+bool plugin_bridge_batch_format_multi_fx_parameters(
+    void** tracks, 
+    fx_param_format_t* params, 
+    int param_count);
+
+bool plugin_bridge_batch_set_multi_track_fx_parameters(
+    void** tracks,
+    fx_param_multi_change_t* changes,
+    int change_count);
 
 #ifdef __cplusplus
 }
