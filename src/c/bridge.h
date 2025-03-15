@@ -13,7 +13,7 @@ typedef struct project_config_extension_t project_config_extension_t;
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include "../sdk/reaper_plugin.h"
+#include "reaper_plugin.h"
 
 // Include all API modules
 #include "api/fx.h"

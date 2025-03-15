@@ -52,6 +52,7 @@ double plugin_bridge_call_track_fx_get_param(void* func_ptr, void* track, int fx
 void plugin_bridge_call_track_fx_get_param_formatted(void* func_ptr, void* track, int fx_idx, int param_idx, char* buf, int buf_size);
 bool plugin_bridge_call_track_fx_set_param(void* func_ptr, void* track, int fx_idx, int param_idx, double val);
 void plugin_bridge_call_track_fx_format_param_value(void* func_ptr, void* track, int fx_idx, int param_idx, double value, char* buf, int buf_size);
+bool plugin_bridge_call_track_fx_get_parameter_step_sizes(void* func_ptr, void* track, int fx_idx, int param_idx, double* step, double* small_step, double* large_step, bool* is_toggle);
 
 // Batch operations for parameters
 bool plugin_bridge_batch_get_fx_parameters(void* track, int fx_idx, fx_param_t* params, int max_params, int* out_param_count);

@@ -1,6 +1,7 @@
 package actions
 
 import (
+	analyzer "go-reaper/src/actions/analysis"
 	demo "go-reaper/src/actions/demos"
 	fxassistant "go-reaper/src/actions/fx-assistant"
 	"go-reaper/src/pkg/logger"
@@ -10,6 +11,11 @@ import (
 func RegisterAll() error {
 	logger.Debug("----------------------------------------------------------")
 	logger.Debug("Registering Go REAPER extension actions...")
+
+	// Register Parameter Analyzer action
+	if err := analyzer.RegisterFXParamDBWriter(); err != nil {
+		return err
+	}
 
 	// Register FX Assistant (LLM FX Assistant)
 	if err := fxassistant.RegisterFXAssistantAction(); err != nil {

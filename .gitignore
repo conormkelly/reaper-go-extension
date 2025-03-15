@@ -7,3 +7,6 @@ build/
 # Logging
 reaper.log
 reaper-ext.log
+
+# Analysis
+fx-dump.db

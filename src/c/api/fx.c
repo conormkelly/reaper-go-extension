@@ -731,3 +731,43 @@ bool plugin_bridge_batch_set_multi_track_fx_parameters(
     LOG_DEBUG("Applied %d parameter changes across multiple tracks, success=%d", change_count, all_success);
     return all_success;
 }
+
+/**
+ * REAPER's TrackFX_GetParameterStepSizes function
+ */
+bool plugin_bridge_call_track_fx_get_parameter_step_sizes(void* func_ptr, void* track, int fx_idx, int param_idx, 
+    double* step, double* small_step, double* large_step, bool* is_toggle) {
+    LOG_DEBUG("Called with func_ptr=%p, track=%p, fx_idx=%d, param_idx=%d", 
+    func_ptr, track, fx_idx, param_idx);
+
+    // Verify input pointers aren't NULL
+    if (!func_ptr || !track) {
+        LOG_ERROR("Invalid parameters: func_ptr=%p, track=%p", func_ptr, track);
+        return false;
+    }
+
+    // Output pointers can be NULL if caller doesn't need those values
+
+    bool (*track_fx_get_param_step_sizes)(void*, int, int, double*, double*, double*, bool*) = 
+    (bool (*)(void*, int, int, double*, double*, double*, bool*))func_ptr;
+
+    LOG_DEBUG("Calling TrackFX_GetParameterStepSizes with track=%p, fx_idx=%d, param_idx=%d", 
+    track, fx_idx, param_idx);
+
+    bool result = track_fx_get_param_step_sizes(track, fx_idx, param_idx, step, small_step, large_step, is_toggle);
+
+    // Log results for debugging
+    if (result) {
+        // Log values only if the pointers are non-NULL
+        LOG_DEBUG("TrackFX_GetParameterStepSizes call completed with result: %d", result);
+
+        if (step) LOG_DEBUG("  step: %f", *step);
+        if (small_step) LOG_DEBUG("  small_step: %f", *small_step);
+        if (large_step) LOG_DEBUG("  large_step: %f", *large_step);
+        if (is_toggle) LOG_DEBUG("  is_toggle: %d", *is_toggle);
+    } else {
+       LOG_DEBUG("TrackFX_GetParameterStepSizes call failed");
+    }
+
+    return result;
+}

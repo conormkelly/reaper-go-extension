@@ -4,6 +4,7 @@ package reaper
 #cgo CFLAGS: -I${SRCDIR}/../c -I${SRCDIR}/../../sdk
 #include "../c/bridge.h"
 #include <stdlib.h>
+#include <stdbool.h>
 */
 import "C"
 import (
@@ -594,4 +595,52 @@ func BatchSetFXParametersWithUndo(track unsafe.Pointer, changes []ParameterChang
 	}
 
 	return err
+}
+
+// TrackFX_GetParameterStepSizes gets the step sizes and toggle status for a parameter
+func TrackFX_GetParameterStepSizes(track unsafe.Pointer, fxIndex int, paramIndex int,
+	step, smallStep, largeStep *float64, isToggle *bool) bool {
+	if !initialized {
+		return false
+	}
+
+	cFuncName := C.CString("TrackFX_GetParameterStepSizes")
+	defer C.free(unsafe.Pointer(cFuncName))
+
+	getFuncPtr := C.plugin_bridge_call_get_func(C.plugin_bridge_get_get_func(), cFuncName)
+	if getFuncPtr == nil {
+		logger.Warning("Could not get TrackFX_GetParameterStepSizes function pointer")
+		return false
+	}
+
+	// Convert Go pointers to C pointers
+	var cStep, cSmallStep, cLargeStep *C.double
+	var cIsToggle *C.bool
+
+	// Only create C pointers if Go pointers are not nil
+	if step != nil {
+		cStep = (*C.double)(unsafe.Pointer(step))
+	}
+	if smallStep != nil {
+		cSmallStep = (*C.double)(unsafe.Pointer(smallStep))
+	}
+	if largeStep != nil {
+		cLargeStep = (*C.double)(unsafe.Pointer(largeStep))
+	}
+	if isToggle != nil {
+		cIsToggle = (*C.bool)(unsafe.Pointer(isToggle))
+	}
+
+	result := C.plugin_bridge_call_track_fx_get_parameter_step_sizes(
+		getFuncPtr,
+		track,
+		C.int(fxIndex),
+		C.int(paramIndex),
+		cStep,
+		cSmallStep,
+		cLargeStep,
+		cIsToggle,
+	)
+
+	return bool(result)
 }
